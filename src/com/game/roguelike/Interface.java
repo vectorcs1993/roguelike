@@ -1,6 +1,7 @@
 package com.game.roguelike;
 import asciiPanel.AsciiPanel;
 import javax.swing.*;
+import java.awt.Color;
 
 public class Interface extends JFrame {
 
@@ -18,13 +19,21 @@ public class Interface extends JFrame {
     public void clear() {
         terminal.clear();
     }
-    public void writeSymbol(int x, int y, String symbol) {
-        terminal.setCursorPosition(3, 4);
-        terminal.write(symbol);
+    public void writeText(int x, int y, String text, int colorBg, int colorFg) {
+        terminal.setCursorPosition(x, y);
+        terminal.write(text, colorBg,colorFg);
+    }
+    public void writeText(int x, int y, String text) {
+        terminal.setCursorPosition(x, y);
+        terminal.write(text);
     }
     public void writeSymbol(int x, int y, char symbol) {
         terminal.setCursorPosition(x, y);
         terminal.write(symbol);
+    }
+    public void writeSymbol(int x, int y, char symbol, Color colorBg, Color colorFg) {
+        terminal.setCursorPosition(x, y);
+        terminal.write(symbol, colorFg, colorBg );
     }
     public void writeRect(int x, int y, int w, int h, char symbol) {
         writeLine(x, y, w, Direction.RIGHT, symbol);

@@ -8,7 +8,6 @@ public class World {
     public World(int sizeX, int sizeY) {
         objects = new GameObject[sizeX][sizeY];
     }
-
     public void addObject(GameObject object, int x, int y) {
         this.objects[x][y] = object;
     }
@@ -52,12 +51,29 @@ public class World {
             }
         }
     }
+    public void fill(int type) {
+        for (int ix = 0; ix < getSizeX(); ix++) {
+            for (int iy = 0; iy < getSizeY(); iy++) {
+                this.objects[ix][iy] = new GameObject(type);
+            }
+        }
+    }
+    // залить определенную область объектами
+    public void fill(int x, int y, int width, int height, int type) {
+        for (int ix = 0; ix < width; ix++) {
+            for (int iy = 0; iy < height; iy++) {
+                this.objects[x + ix][ y + iy] = new GameObject(type);
+            }
+        }
+    }
     // проверка на возможность перемещения в указанные координаты
     public boolean isMove(int x, int y) {
         if (x >= 0 && y >= 0 && x < getSizeX() && y < getSizeY()) {
-            if (this.objects[x][y] == null) {
-                // движение разрешено
-                return true;
+            if (this.objects[x][y] != null) {
+                if (this.objects[x][y].type == GameObject.FLOOR) {
+                    // движение разрешено
+                    return true;
+                }
             }
         }
         // движение запрещено
@@ -74,12 +90,28 @@ public class World {
             }
         }
     }
-
+    public void placeRoom(int x, int y, int width, int height) {
+        fill(x, y, width, height, GameObject.FLOOR);
+    }
+    public boolean isClearOfObject( int x, int y, int width, int height, int type) {
+        if (x < 0 || y < 0 || x + width > objects.length || y + height > objects[0].length)
+            return false;
+        for (int ix=0; ix<width; ix++) {
+            for (int iy=0; iy<height; iy++) {
+                if (objects[x+ix][y+iy].type != type)
+                    return false;
+            }
+        }
+        return true;
+    }
     public void moveObject(GameObject object, int x, int y) {
+        int prevX = getPositionX(object);
+        int prevY = getPositionY(object);
         int newX = (int) limit(x, 0, getSizeX() - 1);
         int newY = (int) limit(y, 0, getSizeY() - 1);
         removeObject(object);
         objects[newX][newY] = object;
+        objects[prevX][prevY] = new GameObject(GameObject.FLOOR);
     }
     public static double limit(double d, double min, double max) {
         return Math.min(Math.max(d, min), max);
