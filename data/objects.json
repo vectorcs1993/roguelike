@@ -1,0 +1,321 @@
+{
+"humans" : [
+		{"id":32, 
+	"name":"мародер", 
+	"ac": 2, 
+	"atack": 4, 
+	"hp_max": 75, 
+	"sprite": "objects/human_maroder.png", 
+	"side": 2, 
+	"character": 6, 
+	"items": [10, 11, 25, 60, 30, 50, 99], 
+	"exp" : 20,
+	"fearFire":false,
+	"trace": 71,
+	"alarmHp":true},
+		{"id":40, 
+	"name":"военный", 	
+	"atack": 5, 
+	"hp_max": 100, 
+	"sprite": "objects/human_military.png", 
+	"side": 1, 
+	"character": 5, 
+	"items": [31, 11, 102, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51],  
+	"exp" : 40,
+	"fearFire":false,
+	"trace": 71,
+	"alarmHp":true}, 
+		{"id":50, 
+	"name":"дезертир", 
+	"atack": 4, 
+	"hp_max": 80, 
+	"sprite": "objects/human_deserter.png", 
+	"side": 2, 
+	"character": 5, 
+	"items": [31, 51, 51, 51, 51], 
+	"exp" : 30,
+	"fearFire":false,
+	"trace": 71,
+	"alarmHp":true},
+		{"id":55, 
+	"name":"ученый", 
+	"ac": 3, 
+	"atack": 1, 
+	"hp_max": 40, 
+	"sprite": "objects/human_scientist.png", 
+	"side": 4, 
+	"character": 0, 
+	"items": [], 
+	"exp":0,
+	"fearFire":false,
+	"trace": 71,
+	"alarmHp":true}, 
+		{"id":65, 
+	"name":"местный", 
+	"ac": 1, 
+	"atack": 1, 
+    "radius_atack": 1, 
+    "through" : false,
+    "radius_view": 3,
+	"hp_max": 120, 
+	"sprite": "objects/human_civil.png", 
+	"side": 0, 
+	"character": 1, 
+	"items": [], 
+	"exp":0,
+	"fearFire":false,
+	"trace": 71,
+	"alarmHp":true},
+		{"id":67, 
+	"name":"спекулянт", 
+	"ac": 0, 
+	"atack": 0, 
+	"hp_max": 50, 
+	"sprite": "objects/human_trader.png", 
+	"side": 0, 
+	"character": 0, 
+	"items": [], 
+	"exp": 0,
+	"fearFire":false,
+	"trace": 71,
+	"alarmHp":true}
+	],
+"enviroments": [
+        {
+            "id": 1,
+            "name": "стена",
+            "sprite": "objects/wall1.png",
+            "hp_max": 2000,
+            "through": false,
+	        "materials" : [503, 503, 503, 503],
+	        "create" : true
+        },
+	    {
+            "id": 38,
+            "name": "стена",
+            "sprite": "objects/wall2.png",
+            "through": false,
+	        "materials" : [503, 503, 503],
+	        "create" : false
+        },
+        {
+            "id": 13,
+            "name": "дерево",
+            "sprite": "objects/tree1.png",
+            "through": false,
+	        "materials" : [501, 501, 501],
+	        "create" : false
+        },
+        {
+            "id": 14,
+            "name": "дерево",
+            "sprite": "objects/tree2.png",
+            "through": false,
+	        "materials" : [501, 501, 501],
+	        "create" : false
+        },
+        {
+            "id": 15,
+            "name": "мусорное ведро",
+            "sprite": "objects/trash.png",
+            "through": true,
+            "create" : true
+        }
+    ],
+"tables" : [
+    {
+        "id": 201,
+        "name": "стол",
+        "sprite": "objects/table.png",
+        "through": true,
+        "materials" : [504, 504, 504, 504],
+        "create" : true
+    }
+    ]
+    ,
+"markets" : [
+        {
+            "id": 0,
+            "name": "стол на выдачу",
+            "sprite": "objects/table_market.png",
+            "through": true,
+            "create" : true
+        }
+    ]
+    ,
+"market_trash" : [
+        {
+            "id": 0,
+            "name": "сборщик посуды",
+            "sprite": "objects/table.png",
+            "through": true,
+            "create" : true
+        }
+    ]
+    ,
+"generators_food": [
+        {
+            "id": 0,
+            "name": "хранилище",
+            "sprite": "objects/generator_food.png",
+	        "create" : false
+        }
+    ],
+"terrain": [
+    {
+        "id": 0,
+        "name": "трава",
+        "sprite": "objects/floor0.png",
+	    "solid" : false
+    }
+    ,
+    {
+        "id": 1,
+        "name": "трава",
+        "sprite": "objects/floor1.png",
+	    "solid" : false
+    },
+    {
+        "id": 2,
+        "name": "трава",
+        "sprite": "objects/floor2.png",	
+	    "solid" : false   
+    },
+    {
+        "id": 3,
+        "name": "дорога",
+        "sprite": "objects/floor3.png",  
+    	"solid" : false
+    },
+    {
+        "id": 4,
+        "name": "щебень",
+        "sprite": "objects/floor4.png",
+        "solid" : false
+    },
+    {
+        "id": 5,
+        "name": "дерево",
+        "sprite": "objects/floor5.png",
+        "solid" : false
+    },
+    {
+        "id": 6,
+        "name": "сталь",
+        "sprite": "objects/floor6.png",
+        "solid" : false
+    },
+    {
+        "id": 7,
+        "name": "камень",
+        "sprite": "objects/floor7.png",
+        "solid" : false
+    },
+    {
+        "id": 8,
+        "name": "мелководье",
+        "sprite": "objects/floor8.png",
+        "solid" : false
+    },
+    {
+        "id": 9,
+        "name": "вода",
+        "sprite": "objects/floor9.png",
+        "solid" : true
+    }
+    ],
+"items_container": [
+		{"id": 0, 
+        "name": "чистая тарелка", 
+        "cost": 5, 
+        "trash" : 1,
+        "max_size" : 4,
+        "sprite": "items/container_plate.png", 
+        "purchased":true}
+        ,
+        {"id": 1, 
+            "name": "грязная тарелка", 
+            "cost": 5, 
+            "max_size" : 0,
+            "wash" : 0,
+            "next_state" : {"cat" : "items_container", "id" : 0 },
+            "sprite": "items/container_plate_dirt.png", 
+            "purchased":true}
+            ,
+        {"id": 2, 
+            "name": "решетка для картошки", 
+            "cost": 5, 
+            "max_size" : 1,
+            "allow_items" : [{"cat" : "items_food", "id" : 13 },
+                {"cat" : "items_food", "id" : 14 }],
+            "sprite": "items/container_fries.png", 
+            "purchased":true}
+	],
+"items_food": [
+		{"id": 10, 
+        "name": "хлеб", 
+        "cost": 5, 
+        "sprite": "items/bread.png", 
+        "purchased":true}
+        ,
+        {"id": 11, 
+        "name": "картофель",  
+        "cost": 5, 
+        "next_state" : {"cat" : "items_food", "id" : 13 },
+        "sprite": "items/potatoes.png", 
+        "purchased":true}
+        ,
+        {"id": 13, 
+        "name": "картофель нарезанный",  
+        "cost": 5, 
+        "ready" : 50,
+        "next_state" : {"cat" : "items_food", "id" : 14 },
+        "sprite": "items/potatoes_cutting.png", 
+        "purchased":true}
+        , 
+        {"id": 14, 
+        "name": "картофель фри",  
+        "cost": 5, 
+        "sprite": "items/potatoes_fries.png", 
+        "purchased":true}
+	],
+"workbenches" : [
+    {
+        "id": 0,
+        "name": "разделочный стол",
+        "sprite": "objects/table_cutting.png",
+        "items_for_work" : [{"cat" : "items_food", "id" : 11 }],
+        "through" : true
+    }
+    ,
+    {
+        "id": 1,
+        "name": "мойка",
+        "sprite": "objects/washing.png",
+        "items_for_work" : [{"cat" : "items_container", "id" : 1 }],
+        "through" : true
+    }
+    ],
+"workbenches_auto" : [
+        {
+            "id": 0,
+            "name": "варочная плита",
+            "sprite": "objects/stove.png",
+            "through" : true
+        },
+        {
+            "id": 1,
+            "name": "фритюрница",
+            "items_for_work" : [{"cat" : "items_container", "id" : 2 }],
+            "sprite": "objects/fries.png",
+            "through" : true
+        }
+    ],
+"recepts" : [
+    {
+        "id": 0,
+        "name": "картошечка фри",
+        "items" : [14]
+    }
+]
+}

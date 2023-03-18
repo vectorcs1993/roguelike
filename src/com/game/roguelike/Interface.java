@@ -1,81 +1,85 @@
 package com.game.roguelike;
-import asciiPanel.AsciiPanel;
+
 import javax.swing.*;
-import javax.swing.text.Style;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.KeyListener;
 
 public class Interface extends JFrame {
-
-    final private AsciiPanel terminal;
-    public JTextPane text;
-    public Interface(int screenWidth, int screenHeight) {
+    final boolean[][] visible;
+    final boolean[][] dark;
+    public JTextPane field;
+    Document doc;
+    Color primary = new Color(50), secondary = Color.DARK_GRAY;
+    public Image cursor, floor, wall, wall_top, monster, ladder_down;
+//    int mouseX, mouseY;
+    XNCanvas canvas;
+    public Interface(Roguelike game, int mapWidth, int mapHeight) {
         super("Roguelike Game v.0.0.1");
-        terminal = new AsciiPanel(screenWidth, screenHeight);
-        terminal.setMaximumSize(new Dimension(Math.round((screenWidth + 1.7f)  * terminal.getCharWidth()), Math.round((screenHeight + 2.3f)  * terminal.getCharHeight())));
-        JPanel info = new JPanel();
-        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-         text = new JTextPane();
-         text.setEditable(false);
-         text.setForeground(Color.WHITE);
-         text.setBackground(Color.BLACK);
-         text.setFont(new Font(Font.MONOSPACED, Font.BOLD, 18));
-        info.add(text);
+        visible = new boolean[mapWidth][mapHeight];
+        dark = new boolean[mapWidth][mapHeight];
+        Font font = new Font(Font.MONOSPACED, Font.BOLD, 16);
         JPanel controlPanel = new JPanel();
-        controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.X_AXIS));
-        controlPanel.add(terminal);
-        controlPanel.add(info);
+        controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
+
+        field = new JTextPane();
+        field.setEditable(false);
+        field.setForeground(Color.GRAY);
+        field.setBackground(Color.BLACK);
+        field.setPreferredSize(new Dimension(800, 100));
+        field.setFont(font);
+        createStyle("gray_white", Color.GRAY, Color.white);
+        createStyle("blue_gray", Color.BLUE, Color.gray);
+        createStyle("black_white", Color.BLACK, Color.white);
+        createStyle("dark_gray_white", Color.DARK_GRAY, Color.white);
+        createStyle("dark_gray_light_gray", Color.DARK_GRAY, Color.GRAY);
+        createStyle("blue_white", Color.BLUE, Color.white);
+        createStyle("red_white", Color.RED, Color.white);
+        createStyle("red_black", Color.RED, Color.BLACK);
+        createStyle("white_black", Color.WHITE, Color.black);
+        createStyle("black_black", Color.BLACK, Color.BLACK);
+        doc = field.getDocument();
+        canvas = new XNCanvas(game, this, mapWidth, mapHeight);
+        canvas.setPreferredSize(new Dimension(800, 500));
+        cursor = canvas.createImageIcon("human_maroder.png", 32, 32).getImage();
+        floor = canvas.createImageIcon("terrain/floor3.png", 32, 32).getImage();
+        monster = canvas.createImageIcon("entities/entity_rat.png", 32, 32).getImage();
+        wall = canvas.createImageIcon("objects/wall1.png", 32, 32).getImage();
+        wall_top = canvas.createImageIcon("objects/wall2.png", 32, 32).getImage();
+        ladder_down = canvas.createImageIcon("objects/ladder_down.png", 32, 32).getImage();
+        setBackground(primary);
+        canvas.setBackground(primary);
+        field.setBackground(secondary);
+        controlPanel.add(canvas);
+        controlPanel.add(field);
+
+        super.setMinimumSize(new Dimension(800, 700));
         super.add(controlPanel);
-        super.setSize(Math.round((screenWidth + 1.7f)  * terminal.getCharWidth()) + 320, Math.round((screenHeight + 2.3f)  * terminal.getCharHeight()));
+        super.setLocationRelativeTo(null);
         super.setVisible(true);
         super.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         super.repaint();
     }
+
+    public void setOpen(int x, int y, boolean visible) {
+        this.visible[x][y] = visible;
+    }
+
+    public void setDark(int x, int y, boolean value) {
+        this.dark[x][y] = value;
+    }
+
+    private void createStyle(String name, Color bg, Color fg) {
+        field.addStyle(name, null);
+        StyleConstants.setBackground(field.getStyle(name), bg);
+        StyleConstants.setForeground(field.getStyle(name), fg);
+    }
+
     public void addKeyListener(KeyListener listener) {
-        text.addKeyListener(listener);
+        canvas.addKeyListener(listener);
     }
-    public void clear() {
-        terminal.clear();
-    }
-    public void writeText(int x, int y, String text, Color colorBg, Color colorFg) {
-        terminal.setCursorPosition(x, y);
-        terminal.write(text, colorFg, colorBg);
-    }
-    public void writeText(int x, int y, String text) {
-        writeText(x, y, text, Color.BLACK, Color.WHITE);
-    }
-    public void writeSymbol(int x, int y, char symbol) {
-        terminal.setCursorPosition(x, y);
-        terminal.write(symbol);
-    }
-    public void writeSymbol(int x, int y, char symbol, Color colorBg, Color colorFg) {
-        terminal.setCursorPosition(x, y);
-        terminal.write(symbol, colorFg, colorBg );
-    }
-    public void writeRect(int x, int y, int w, int h, char symbol) {
-        writeLine(x, y, w, Direction.RIGHT, symbol);
-        writeLine(x + w - 1, y + 1, h - 1, Direction.DOWN, symbol);
-        writeLine(x, y + h - 1, w - 1, Direction.RIGHT, symbol);
-        writeLine(x , y + 1, h - 2, Direction.DOWN, symbol);
-    }
-    public void writeLine(int x, int y, int s, int direction, char symbol) {
-        if (direction == Direction.RIGHT) {
-            for (int i = 0; i < s; i++) {
-                writeSymbol(x+i, y, symbol);
-            }
-        } else if (direction == Direction.LEFT) {
-            for (int i = 0; i < s; i++) {
-                writeSymbol(x - i, y, symbol);
-            }
-        } else  if (direction == Direction.DOWN) {
-            for (int i = 0; i < s; i++) {
-                writeSymbol(x, y+ i, symbol);
-            }
-        } else  if (direction == Direction.UP) {
-            for (int i = 0; i < s; i++) {
-                writeSymbol(x, y- i, symbol);
-            }
-        }
+
+    public void centerAlignPlayer() { // центрировать по игроку
+        canvas.moveCanvas(-300, 0);
     }
 }

@@ -1,6 +1,6 @@
 package com.game.roguelike.world;
 
-public class Room {
+public class Room implements arealable {
     private final int[][][] matrix;
     private String name;
     private final int x;
@@ -26,6 +26,8 @@ public class Room {
     public String getName() {
         return name;
     }
+
+
     public void setName(String name) {
         this.name = name;
     }

@@ -1,43 +1,54 @@
 package com.game.roguelike.world;
 
-import java.awt.Color;
+import com.game.roguelike.Roguelike;
+
+import java.awt.*;
 
 public class GameObject {
-    public int type;
-    public final static int PLAYER = 0, WALL=1, FLOOR=2, LADDER=3;
+    private final int type;
+    public Image sprite;
+    public final static int PLAYER = 0, WALL=1, FLOOR=2, LADDER_DOWN =3, LADDER_UP=4, MONSTER=10;
 
     public final static int MEDKIT = 101;
     public GameObject(int type) {
         this.type = type;
+        // Roguelike.setSprite(room.game.data.getData().getObject(type, id).sprite);
     }
-    public char getView() {
+    public int getType() {
+        return type;
+    }
+    public char getChar() {
         return switch (type) {
             case PLAYER -> '@';
             case WALL -> '#';
             case FLOOR -> '.';
             case MEDKIT -> '+';
-            case LADDER -> '>';
+            case LADDER_DOWN -> '>';
+            case LADDER_UP -> '<';
+            case MONSTER -> '!';
             default -> ' ';
         };
     }
-    public Color getColorBg() {
+    public String getColorBg() {
         return switch (type) {
-            case PLAYER -> Color.GRAY;
-            case WALL -> Color.DARK_GRAY;
-            case LADDER -> Color.LIGHT_GRAY;
-            case MEDKIT -> Color.RED;
-            default -> Color.BLACK;
+            case PLAYER -> "blue";
+            case WALL -> "dark_gray";
+            case LADDER_DOWN, LADDER_UP -> "white";
+            case MEDKIT, MONSTER -> "red";
+            default -> "black";
         };
     }
     public boolean getSolid() {
+        return type == WALL || type==MONSTER;
+    }
+    public boolean getPermanent() {
         return type == WALL;
     }
-    public Color getColorFg() {
+    public String getColorFg() {
         return switch (type) {
-            case PLAYER -> Color.YELLOW;
-            case WALL, MEDKIT -> Color.WHITE;
-            case FLOOR -> Color.LIGHT_GRAY;
-            default -> Color.RED;
+            case WALL, FLOOR -> "light_gray";
+            case LADDER_DOWN, LADDER_UP, MONSTER -> "black";
+            default -> "white";
         };
     }
     public String getName() {
@@ -45,6 +56,8 @@ public class GameObject {
             case PLAYER -> "игрок";
             case WALL -> "стена";
             case FLOOR -> "пол";
+            case LADDER_DOWN -> "лестница вниз";
+            case LADDER_UP -> "лестница наверх";
             default -> "нет данных";
         };
     }
