@@ -1,8 +1,0 @@
-{
-	objects: [
-		{
-			name: "wall",
-			sprite: "wall.png"
-		}
-	]
-}

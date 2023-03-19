@@ -5,6 +5,8 @@ import com.game.roguelike.matrix.Node;
 import com.game.roguelike.matrix.Nodes;
 import com.game.roguelike.world.*;
 import org.apache.commons.io.IOUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -12,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.sql.*;
 import java.util.*;
 
 public class Roguelike {
@@ -19,10 +22,10 @@ public class Roguelike {
     private final Interface screenMainGame;
     World world;
     private final ArrayList<World> worlds;
-    private static final int mapWidth = 30;
-    private static final int mapHeight = 30;
+    private final int mapWidth;
+    private final int mapHeight;
     String[] console = new String[4];
-    private GameObject viewPlayer, subPlayer;
+    // private GameObject viewPlayer, subPlayer;
     final Entity player;
     private arealable currentArea;
     private int tick;
@@ -30,7 +33,12 @@ public class Roguelike {
 
     private boolean inputDialog;
     private Runnable[] actionDialog;
+    JSONObject settings;
 
+    public static final String DB_URL = "jdbc:h2:/data/data.db";
+    public static final String DB_Driver = "org.h2.Driver";
+
+    Connection connection;
 
     public Roguelike() {
         inputDialog = false;
@@ -40,69 +48,96 @@ public class Roguelike {
         player = new Player(GameObject.PLAYER);
         currentArea = null;
         try {
-            System.out.println(readJSONToString("data.json"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+            Class.forName(DB_Driver); //Проверяем наличие JDBC драйвера для работы с БД
+            connection = DriverManager.getConnection(DB_URL);//соединениесБД
+            System.out.println("Соединение с СУБД выполнено.");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace(); // обработка ошибки  Class.forName
+            System.out.println("JDBC драйвер для СУБД не найден!");
+        } catch (SQLException e) {
+            e.printStackTrace(); // обработка ошибок  DriverManager.getConnection
+            System.out.println("Ошибка SQL !");
         }
-        //объект обработки мира и рисования экрана
-        screenMainGame = new Interface(this, mapWidth, mapHeight);
-        //объект матрицы для вычислений
-        matrix = new Matrix(6, 9, 16);
-        // генерация комнат
-        generateWorld(10, 1, 5, 15, 5,15);
-        screenMainGame.centerAlignPlayer();
-        log("Добро пожаловать");
-        // главный цикл отрисовки, запускается каждые 100 мс
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                movePlayerNextCell();
-            }
-        }, 0, 100);
 
-        screenMainGame.canvas.addKeyListener(new KeyListener() {
-            @Override
-            public void keyTyped(KeyEvent keyEvent) {
-                if (inputDialog) {
-                    if (keyEvent.getKeyChar() == '1') {
-                        if (actionDialog != null) {
-                            if (actionDialog[0] != null) {
-                                actionDialog[0].run();
-                                actionDialog = null;
-                            }
-                        }
-                    } else if (keyEvent.getKeyChar() == '2') {
-                        if (actionDialog != null) {
-                            if (actionDialog[1] != null) {
-                                actionDialog[1].run();
-                                actionDialog = null;
-                            }
-                        }
-                    }
-                } else {
-                    if (keyEvent.getKeyChar() == '1') {
-                        screenMainGame.canvas.dK += 1;
+        try {
+            settings = new JSONObject(readJSONToString("settings.json"));
+            System.out.println("Файл настроек загружен");
+            mapWidth = (int) getSettings(new String[]{"map"}).get("width");
+            mapHeight = (int) getSettings(new String[]{"map"}).get("height");
+            //объект обработки мира и рисования экрана
+            screenMainGame = new Interface(this, mapWidth, mapHeight);
+            //объект матрицы для вычислений
+            matrix = new Matrix((int) getSettings().get("maxViewRadius"));
+            // генерация комнат
 
+            generateWorld((int) getSettings(new String[]{"map"}).get("rooms"),
+                    (int) getSettings(new String[]{"map"}).get("border"),
+                    (int) getSettings(new String[]{"map"}).get("minWidth"),
+                    (int) getSettings(new String[]{"map"}).get("maxWidth"),
+                    (int) getSettings(new String[]{"map"}).get("minHeight"),
+                    (int) getSettings(new String[]{"map"}).get("maxHeight"));
+            screenMainGame.centerAlign(player);
+            log("Добро пожаловать");
+            // главный цикл отрисовки, запускается каждые 100 мс
+//            new Timer().scheduleAtFixedRate(new TimerTask() {
+//                @Override
+//                public void run() {
+//
+//                }
+//            }, 0, (int) getSettings().get("speed";))
+            final long[] time = {0};
+            // главный цикл отрисовки, запускается каждые 100 мс
+            new Timer().scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    if (++time[0] %(1000 / (int) getSettings().get("speed"))==0) {
+                        movePlayerNextCell();
                     }
-                    if (keyEvent.getKeyChar() == '2') {
-                        screenMainGame.canvas.dK -= 1;
-                    }
-                    if (keyEvent.getKeyChar() == '3') {
-                        screenMainGame.canvas.dJ += 1;
 
-                    }
-                    if (keyEvent.getKeyChar() == '4') {
-                        screenMainGame.canvas.dJ -= 1;
-                    }
                     drawScreenGame();
                 }
+            }, 0, 1000 / (int) getSettings().get("frameRate"));
+            screenMainGame.canvas.addKeyListener(new KeyListener() {
+                @Override
+                public void keyTyped(KeyEvent keyEvent) {
+                    if (inputDialog) {
+                        if (keyEvent.getKeyChar() == '1') {
+                            if (actionDialog != null) {
+                                if (actionDialog[0] != null) {
+                                    actionDialog[0].run();
+                                    actionDialog = null;
+                                }
+                            }
+                        } else if (keyEvent.getKeyChar() == '2') {
+                            if (actionDialog != null) {
+                                if (actionDialog[1] != null) {
+                                    actionDialog[1].run();
+                                    actionDialog = null;
+                                }
+                            }
+                        }
+                    } else {
+//                        if (keyEvent.getKeyChar() == '1') {
+//                            screenMainGame.canvas.dK += 1;
+//
+//                        }
+//                        if (keyEvent.getKeyChar() == '2') {
+//                            screenMainGame.canvas.dK -= 1;
+//                        }
+//                        if (keyEvent.getKeyChar() == '3') {
+//                            screenMainGame.canvas.dJ += 1;
+//
+//                        }
+//                        if (keyEvent.getKeyChar() == '4') {
+//                            screenMainGame.canvas.dJ -= 1;
+//                        }
+//                        drawScreenGame();
+                    }
 
-            }
+                }
 
-            @Override
-            public void keyPressed(KeyEvent keyEvent) {
+                @Override
+                public void keyPressed(KeyEvent keyEvent) {
 
 //                if (!lockInput) {
 //                    if (moveCount > 1) {
@@ -117,15 +152,48 @@ public class Roguelike {
 //                    }
 //                    moveCount++;
 //                }
-            }
+                }
 
-            @Override
-            public void keyReleased(KeyEvent keyEvent) {
-                // moveCount = 0;
+                @Override
+                public void keyReleased(KeyEvent keyEvent) {
+                    // moveCount = 0;
+                }
+            });
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    connection.close();       // отключение от БД
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+        } catch (IOException | URISyntaxException | JSONException e) {
+            throw new RuntimeException(e);
+        }
+        updateAllObjects();
+    }
+    HashMap<String, Object> getSettings() {
+        return getSettings(new String[]{});
+    }
+    HashMap<String, Object> getSettings(String[] entryObject) {
+        HashMap<String, Object> setts = new HashMap<>();
+        JSONObject obj = settings;
+        try {
+            Iterator keys;
+            if (entryObject.length > 0) {
+                obj = ((JSONObject) settings.get(entryObject[0]));
             }
-        });
+            keys = obj.keys();
+            while (keys.hasNext()) {
+                String key = (String) keys.next();
+                setts.put(key, obj.get(key));
+            }
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+        return setts;
     }
 
+    // данные
     private void actionPlayer(int keyCode) {
         // действия персонажа
         int newX = getX(player);
@@ -199,6 +267,7 @@ public class Roguelike {
             case 82 -> {  // нажата клавиша R
                 player.nextDirection();
                 drawScreenGame();
+
             }
             case 32 -> {
                 if (world.getObject(newX, newY).getType() == GameObject.LADDER_DOWN) {
@@ -434,8 +503,6 @@ public class Roguelike {
         }
 
         setOpenObjectsView();
-        // прорисовать экран
-        drawScreenGame();
     }
 
     //    private void drawScreenGame() {
@@ -467,9 +534,7 @@ public class Roguelike {
 //                .writeText(0, mapHeight + 3, console[2])
 //                .writeText(0, mapHeight + 4, console[3]);
 //
-//        // перерисовать экран
-//        screenMainGame.redrawField();
-//        screenMainGame.repaint();
+
 //    }
     public void clickCanvas(int x, int y) {
         if (screenMainGame.canvas.isPlayerVisible(x, y) && world.isMove(x, y)) {
@@ -490,10 +555,10 @@ public class Roguelike {
                 // визуальное обновление окружения
                 adjView(player);
                 setOpenObjectsView();
-                drawScreenGame();
                 player.path.removeLast();
                 tick++;
                 updateAllMonsters();
+                updateAllObjects();
 //                if (!player.path.isEmpty()) {
 //
 //                   taskMove = new TimerTask() {
@@ -582,11 +647,13 @@ public class Roguelike {
             }
         }
     }
-
-    private void drawScreenGame() {
+    private void updateAllObjects() {
         drawObjectsInHashMap(world.getIteratorObjects(0));
         drawObjectsInHashMap(world.getIteratorObjects(1));
         drawObjectsInHashMap(world.getIteratorObjects(2));
+    }
+    private void drawScreenGame() {
+        screenMainGame.canvas.constrainMoveCanvas();
         screenMainGame.canvas.repaint();
     }
 
@@ -612,13 +679,13 @@ public class Roguelike {
         screenMainGame.repaint();
     }
 
-    private String getViewInfo() {
-        return (viewPlayer != null) ? viewPlayer.getName() : "ничего";
-    }
-
-    private String getSubInfo() {
-        return (subPlayer != null) ? subPlayer.getName() : "ничего";
-    }
+//    private String getViewInfo() {
+//        return (viewPlayer != null) ? viewPlayer.getName() : "ничего";
+//    }
+//
+//    private String getSubInfo() {
+//        return (subPlayer != null) ? subPlayer.getName() : "ничего";
+//    }
 
     //устанавливает объект в свободную от других объектов область
     private int[] placeFreeNeighbor(GameObjects objects) {

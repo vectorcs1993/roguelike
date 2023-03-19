@@ -9,15 +9,15 @@ public class Matrix {
     public int[][] matrixLine;
     public int[] matrixRadius;
 
-    private final int gridX;
-    private final int gridY;
+//    private final int gridX;
+//    private final int gridY;
     public static int NULL = -1;
     private final IntegerList[] radiusList;
     final public int maxRadius; // максимальный радиус
 
-    public Matrix(int maxRadius, int gridX, int gridY) {
-        this.gridX = gridX;
-        this.gridY = gridY;
+    public Matrix(int maxRadius) {
+//        this.gridX = gridX;
+//        this.gridY = gridY;
         this.maxRadius = maxRadius;
         int center = maxRadius + 1;
         int size = center * 2 - 1;
@@ -359,12 +359,12 @@ public class Matrix {
             return 1;
     }
 
-    public int[] getAdjMoveXY(int tick, int dir, int moveCount) {
-        int[] txy = getDirectionXY(dir);
-        return new int[]{
-                (int) (Roguelike.map(tick, 0, moveCount * getDiagonalAdj(dir), 0, gridX) * txy[0]),
-                (int) (Roguelike.map(tick, 0, moveCount * getDiagonalAdj(dir), 0, gridY) * txy[1])};
-    }
+//    public int[] getAdjMoveXY(int tick, int dir, int moveCount) {
+//        int[] txy = getDirectionXY(dir);
+//        return new int[]{
+//                (int) (Roguelike.map(tick, 0, moveCount * getDiagonalAdj(dir), 0, gridX) * txy[0]),
+//                (int) (Roguelike.map(tick, 0, moveCount * getDiagonalAdj(dir), 0, gridY) * txy[1])};
+//    }
 
     // возвращает чистую матрицу обзора
     public static int[][] clearView(int[][] view) {
@@ -384,11 +384,11 @@ public class Matrix {
         return view;
     }
 
-    public int getGridY() {
-        return gridY;
-    }
-
-    public int getGridX() {
-        return gridX;
-    }
+//    public int getGridY() {
+//        return gridY;
+//    }
+//
+//    public int getGridX() {
+//        return gridX;
+//    }
 }

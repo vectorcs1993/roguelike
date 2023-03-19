@@ -1,5 +1,7 @@
 package com.game.roguelike;
 
+import com.game.roguelike.world.GameObject;
+
 import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
@@ -11,11 +13,13 @@ public class Interface extends JFrame {
     public JTextPane field;
     Document doc;
     Color primary = new Color(50), secondary = Color.DARK_GRAY;
-    public Image cursor, floor, wall, wall_top, monster, ladder_down;
+    public Image cursor, floor, floorEmpty, wall, wall_top, monster, ladder_down;
 //    int mouseX, mouseY;
     XNCanvas canvas;
+    Roguelike game;
     public Interface(Roguelike game, int mapWidth, int mapHeight) {
         super("Roguelike Game v.0.0.1");
+        this.game = game;
         visible = new boolean[mapWidth][mapHeight];
         dark = new boolean[mapWidth][mapHeight];
         Font font = new Font(Font.MONOSPACED, Font.BOLD, 16);
@@ -43,6 +47,7 @@ public class Interface extends JFrame {
         canvas.setPreferredSize(new Dimension(800, 500));
         cursor = canvas.createImageIcon("human_maroder.png", 32, 32).getImage();
         floor = canvas.createImageIcon("terrain/floor3.png", 32, 32).getImage();
+        floorEmpty = canvas.createImageIcon("terrain/floor4.png", 32, 32).getImage();
         monster = canvas.createImageIcon("entities/entity_rat.png", 32, 32).getImage();
         wall = canvas.createImageIcon("objects/wall1.png", 32, 32).getImage();
         wall_top = canvas.createImageIcon("objects/wall2.png", 32, 32).getImage();
@@ -79,7 +84,16 @@ public class Interface extends JFrame {
         canvas.addKeyListener(listener);
     }
 
-    public void centerAlignPlayer() { // центрировать по игроку
-        canvas.moveCanvas(-300, 0);
+    public void centerAlign(GameObject object) { // центрировать по игроку
+        canvas.canvasX = 0;
+        canvas.canvasY = 0;
+        canvas.px0 = 0;
+        canvas.py0 = 0;
+        canvas.moveCanvas(
+                -canvas.getCoordinateMatrix(game.getX(object),
+                        game.getY(object))[0] - 22 + canvas.getWidth()/2,
+                -canvas.getCoordinateMatrix(game.getX(object),
+                        game.getY(object))[1] - 11 + canvas.getHeight()/2);
+
     }
 }

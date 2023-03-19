@@ -1,0 +1,23 @@
+{
+  "speed": 100,
+  "maxViewRadius": 6,
+  "borderMovePlayer" : 2,
+  "hideWalls": false,
+  "frameRate": 60,
+  "map": {
+    "width": 50,
+    "height": 50,
+    "rooms": 12,
+    "border": 3,
+    "minWidth": 5,
+    "minHeight": 5,
+    "maxWidth": 13,
+    "maxHeight": 13
+  },
+  "objects": [
+    {
+      "name": "wall",
+      "sprite": "wall.png"
+    }
+  ]
+}

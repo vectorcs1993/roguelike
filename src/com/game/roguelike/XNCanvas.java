@@ -2,7 +2,6 @@ package com.game.roguelike;
 
 
 import com.game.roguelike.world.GameObject;
-import processing.core.PGraphics;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,13 +9,14 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
+import java.util.Objects;
 
 public class XNCanvas extends JPanel {
     Interface i;
     Roguelike game;
     int w, h;
-    double dK = 16;
-    double dJ = 16;
+    double dK = 0;
+    double dJ = 0;
     Graphics2D g2d;
     AffineTransform t, tClear;
     int boundX = -1, boundY = -1;
@@ -41,15 +41,13 @@ public class XNCanvas extends JPanel {
         py0 = 0;
         for (int j = 0; j < w; j++) {
             for (int k = 0; k < h; k++) {
-                int x = j;
-                int y = k;
-                int x0 = getCoordinateMatrix(x, y)[0];
-                int y0 = getCoordinateMatrix(x, y)[1];
-                shape[x][y] = new Polygon();
-                shape[x][y].addPoint(x0 + 22, y0);
-                shape[x][y].addPoint(x0 + 44, y0 + 11);
-                shape[x][y].addPoint(x0 + 22, y0 + 22);
-                shape[x][y].addPoint(x0, y0 + 11);
+                int x0 = getCoordinateMatrix(j, k)[0];
+                int y0 = getCoordinateMatrix(j, k)[1];
+                shape[j][k] = new Polygon();
+                shape[j][k].addPoint(x0 + 22, y0);
+                shape[j][k].addPoint(x0 + 44, y0 + 11);
+                shape[j][k].addPoint(x0 + 22, y0 + 22);
+                shape[j][k].addPoint(x0, y0 + 11);
             }
         }
         shapeBounds = new Polygon();
@@ -94,7 +92,6 @@ public class XNCanvas extends JPanel {
                     boundX = -1;
                     boundY = -1;
                 }
-                repaint();
             }
         });
         addMouseListener(new MouseListener() {
@@ -117,9 +114,6 @@ public class XNCanvas extends JPanel {
                                     boundX = j;
                                     boundY = k;
                                     game.clickCanvas(boundX, boundY);
-                                    if (!drag) {
-                                        repaint();
-                                    }
                                     return;
                                 }
 
@@ -147,21 +141,50 @@ public class XNCanvas extends JPanel {
             public void mouseExited(MouseEvent mouseEvent) {
                 boundX = -1;
                 boundY = -1;
-                repaint();
             }
         });
     }
 
     void moveCanvas(int newX, int newY) {
-        canvasX = (int) (newX - (px0 - shapeBounds.getBounds2D().getMinX()) - shapeBounds.getBounds2D().getMinX());
-        canvasY = (int) (newY - (py0 - shapeBounds.getBounds2D().getMinY()) - shapeBounds.getBounds2D().getMinY());
-        repaint();
+        int newCanvasX = (int) (newX - (px0 - shapeBounds.getBounds2D().getMinX()) - shapeBounds.getBounds2D().getMinX());
+        int newCanvasY = (int) (newY - (py0 - shapeBounds.getBounds2D().getMinY()) - shapeBounds.getBounds2D().getMinY());
+        moveTo(newCanvasX, newCanvasY);
     }
+    void moveTo(int x, int y) {
+        int[] d = getBorderDimensions();
+        canvasX = (int) Roguelike.limit(
+                x,
+                d[0],
+                d[1]
+        );
+        canvasY = (int) Roguelike.limit(
+                y,
+                d[2],
+                d[3]
+        );
 
+    }
+    void constrainMoveCanvas() {
+        int[] d = getBorderDimensions();
+        if (canvasX < d[0] || canvasX > d[1]
+            || canvasY < d[2] || canvasY > d[3]) {
+            moveTo(canvasX, canvasY);
+        }
+    }
+    int [] getBorderDimensions() {
+        int border =(int) game.getSettings().get("borderMovePlayer") * 32;
+        int[] px = getCoordinateMatrix(game.getX(game.player), game.getY(game.player));
+        return new int[] {
+                -(px[0] - canvasX) - 22 + border,
+                -(px[0] - canvasX) -22 + getWidth() - border,
+                -(px[1] - canvasY) + border,
+                -(px[1] - canvasY)  + getHeight() - border
+        };
+    }
     // возвращает координаты матрицы для изометрии
     int[] getCoordinateMatrix(int j, int k) {
         return new int[]{
-                j * 32 + 16 + j * -11 + k * -22 + 22 * w + canvasX, k * 32 + 16 + j * 11 + k * -22 + canvasY
+                j * 32 + j * -11 + k * -22 + 22 * w + canvasX, k * 32 + j * 11 + k * -22 + canvasY
         };
     }
 
@@ -181,29 +204,27 @@ public class XNCanvas extends JPanel {
         tClear = (AffineTransform) g2d.getTransform().clone();
         for (int j = 0; j < game.world.getSizeX(); j++) {
             for (int k = 0; k < game.world.getSizeY(); k++) {
-                int x = j;
-                int y = k;
-                if (getCoordinateMatrix(x, y)[0] + 22 > -32 && getCoordinateMatrix(x, y)[0] + 22 < getWidth() + 32 &&
-                        getCoordinateMatrix(x, y)[1] + 11 > -32 && getCoordinateMatrix(x, y)[1] + 11 < getHeight() + 32) {
+                if (getCoordinateMatrix(j, k)[0] + 22 > -32 && getCoordinateMatrix(j, k)[0] + 22 < getWidth() + 32 &&
+                        getCoordinateMatrix(j, k)[1] + 11 > -32 && getCoordinateMatrix(j, k)[1] + 11 < getHeight() + 32) {
 
                     int pX = -16, pY = -16;
                     t = g2d.getTransform();
-                    g2d.translate(getCoordinateMatrix(x, y)[0] + 22, getCoordinateMatrix(x, y)[1] + 11);
+                    g2d.translate(getCoordinateMatrix(j, k)[0] + 22, getCoordinateMatrix(j, k)[1] + 11);
 
                     for (int l = 0; l < 3; l++) {
 
-                        GameObject obj = game.world.objects[x][y][l];
+                        GameObject obj = game.world.objects[j][k][l];
                         if (obj != null) {
 
-                            if (isPlayerVisible(x, y)) {
+                            if (isPlayerVisible(j, k)) {
 
                                 if (obj.getType() == GameObject.FLOOR) {
                                     drawFloor(pX, pY, i.floor);
                                     if (j == boundX && k == boundY && !drag) {
-                                        drawMatrixShape(x, y, -2, -3, Color.WHITE);
+                                        drawMatrixShape(j, k, -2, -3, Color.WHITE);
                                     }
                                 } else if (obj.getType() == GameObject.WALL) {
-                                    if (isPlayerNear(x, y)) {
+                                    if (isPlayerNear(j, k) || (boolean)game.getSettings().get("hideWalls")) {
                                         drawFloor(pX, pY, i.wall_top);
                                     } else {
                                         drawBlock(i.wall, i.wall_top);
@@ -217,12 +238,12 @@ public class XNCanvas extends JPanel {
                                     drawObject(pX, pY * 2, i.monster);
                                 }
                             } else {
-                                drawRectDarkOrNotVisible(x, y);
+                                drawRectDarkOrNotVisible(j, k);
                             }
                             if (!game.player.path.isEmpty()) {
-                                if (game.player.path.contains(game.world.getNode(x, y))
+                                if (game.player.path.contains(game.world.getNode(j, k))
                                         && !(j == boundX && k == boundY)) {
-                                    drawMatrixShape(x, y, -2, -3, Color.GREEN);
+                                    drawMatrixShape(j, k, -2, -3, Color.GREEN);
                                 }
                             }
                         }
@@ -239,34 +260,33 @@ public class XNCanvas extends JPanel {
         g2d.drawString("mouseX: " + mouseX + " mouseY: " + mouseY, 20, 80);
         g2d.drawString("dJ:" + dJ + " dK: " + dK, 20, 100);
         g2d.drawString("px0:" + px0 + " dK: " + dK, 20, 120);
+        g2d.drawString("Memory Used: " + ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024) / 1024
+                + "/"+ (Runtime.getRuntime().maxMemory()/ 1024) / 1024+ " MB", 20, 130);
     }
 
     private void drawRectDarkOrNotVisible(int x, int y) {
-        drawMatrixShape(x, y, 0, 0, (x == boundX && y == boundY && !drag) ? Color.RED : Color.DARK_GRAY);
+       // drawMatrixShape(x, y, 0, 0, (x == boundX && y == boundY && !drag) ? Color.RED : Color.DARK_GRAY);
     }
 
     public boolean isPlayerNear(int x, int y) {
-        if (game.player.getViewXY(x - 1, y - 1) != -1
+        return game.player.getViewXY(x - 1, y - 1) != -1
                 || (game.getX(game.player) == x - 1 && game.getY(game.player) == y - 1)
                 || (x == boundX + 1 && y == boundY + 1)
                 || (x == boundX + 1 && y == boundY)
-                || (x == boundX && y == boundY + 1)) {
-            return true;
-        }
-        return false;
+                || (x == boundX && y == boundY + 1);
     }
 
     public boolean isPlayerVisible(int x, int y) {
         return i.visible[x][y];
     }
 
-    public void drawMatrixRect(int x, int y) {
-        AffineTransform t = g2d.getTransform();
-        g2d.scale(1, 0.5);
-        g2d.rotate(Math.toRadians(45));
-        g2d.drawRect(x, y, 32, 32);
-        g2d.setTransform(t);
-    }
+//    public void drawMatrixRect(int x, int y) {
+//        AffineTransform t = g2d.getTransform();
+//        g2d.scale(1, 0.5);
+//        g2d.rotate(Math.toRadians(45));
+//        g2d.drawRect(x, y, 32, 32);
+//        g2d.setTransform(t);
+//    }
 
     public void drawMatrixShape(int x, int y, int px, int py, Color color) {
         AffineTransform t = g2d.getTransform();
@@ -307,13 +327,13 @@ public class XNCanvas extends JPanel {
     }
 
     public ImageIcon createImageIcon(String image, int width, int height) {
-        Image imageT = new ImageIcon(getClass().getResource("/" + image)).getImage();
+        Image imageT = new ImageIcon(Objects.requireNonNull(getClass().getResource("/" + image))).getImage();
         Image newimgT = imageT.getScaledInstance(width, height, java.awt.Image.SCALE_FAST);
         return new ImageIcon(newimgT);
     }
 
-    public ImageIcon createImageIcon(Image imageT, int width, int height) {
-        Image newimgT = imageT.getScaledInstance(width, height, java.awt.Image.SCALE_FAST);
-        return new ImageIcon(newimgT);
-    }
+//    public ImageIcon createImageIcon(Image imageT, int width, int height) {
+//        Image newimgT = imageT.getScaledInstance(width, height, java.awt.Image.SCALE_FAST);
+//        return new ImageIcon(newimgT);
+//    }
 }
