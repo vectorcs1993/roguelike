@@ -1,6 +1,6 @@
 package com.game.roguelike.world;
 
-public class Corridor  implements arealable {
+public class Corridor implements arealable {
     private final int[][] matrix;
     private String name;
 

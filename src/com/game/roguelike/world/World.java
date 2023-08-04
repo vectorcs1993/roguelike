@@ -1,8 +1,10 @@
 package com.game.roguelike.world;
 
 import com.game.roguelike.Direction;
+import com.game.roguelike.Roguelike;
 import com.game.roguelike.matrix.Matrix;
 import com.game.roguelike.matrix.Node;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +15,7 @@ public class World {
     private final ArrayList<Room> rooms;
     private final ArrayList<Corridor> roads;
     int sizeX, sizeY;
+
     public World(int sizeX, int sizeY) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
@@ -26,22 +29,27 @@ public class World {
             }
         }
     }
+
     public Node[][] getNodes() {
         return nodes;
     }
+
     public Node getNode(int x, int y) {
-        if (x < 0 || y <0 || x > getNodes().length - 1 || y > getNodes()[0].length - 1)
+        if (x < 0 || y < 0 || x > getNodes().length - 1 || y > getNodes()[0].length - 1)
             return null;
         return getNodes()[x][y];
     }
+
     public void addObject(GameObject object, int x, int y) {
         this.objects[x][y][0] = object;
         this.nodes[x][y].setSolid(object.getSolid());
     }
+
     public void addEnvironment(GameObject object, int x, int y) {
         this.objects[x][y][1] = object;
         this.nodes[x][y].setSolid(object.getSolid());
     }
+
     public void addEntity(Entity entity, int x, int y) {
         entity.setView(Matrix.createView(getSizeX(), getSizeY()));
         this.objects[x][y][2] = entity;
@@ -69,38 +77,6 @@ public class World {
         }
         return objects;
     }
-//    public GameObjects getAllObjects(int x0, int y0, int x1, int y1) {
-//        GameObjects objects = new GameObjects();
-//        for (int ix = 0; ix < getSizeX(); ix++) {
-//            for (int iy = 0; iy < getSizeY(); iy++) {
-//                if (ix >= x0 && iy >= y0 && ix < x1 && iy < y1) {
-//                    if (this.objects[ix][iy][0] != null) {
-//                        objects.add(this.objects[ix][iy][0]);
-//                    }
-//                }
-//            }
-//        }
-//        return objects;
-//    }
-
-//    public GameObject[][] getObjects(int x0, int y0, int x1, int y1) {
-//        GameObject[][] objects = new GameObject[x1 - x0][y1 - y0];
-//        for (int ix = 0; ix < x1 - x0; ix++) {
-//            for (int iy = 0; iy < y1 - y0; iy++) {
-//                if (this.objects[x0 + ix][y0 + iy][0] != null) {
-//                    objects[ix][iy] = this.objects[x0 + ix][y0 + iy][0];
-//                }
-//            }
-//        }
-//        return objects;
-//    }
-//    public GameObject getObjectWithEntity(int x, int y) {
-//        GameObject obj = getObject(x, y, 1);
-//        if (obj == null) {
-//            obj = getObject(x, y, 0);
-//        }
-//        return obj;
-//    }
 
     public GameObject getObject(int x, int y, int z) {
         for (int ix = 0; ix < getSizeX(); ix++) {
@@ -115,18 +91,30 @@ public class World {
         }
         return null;
     }
+
+    public GameObjects getObjects(int x, int y) {
+        GameObjects objects = new GameObjects();
+        for (int iz = 0; iz < 3; iz++) {
+            if (this.objects[x][y][iz] != null)
+                objects.add(this.objects[x][y][iz]);
+        }
+        return objects;
+    }
+
     public GameObject getObject(int x, int y) {
         return getObject(x, y, 0);
     }
+
     public GameObject getEnvironment(int x, int y) {
         return getObject(x, y, 1);
     }
+
     public Entity getEntity(int x, int y) {
         for (int ix = 0; ix < getSizeX(); ix++) {
             for (int iy = 0; iy < getSizeY(); iy++) {
                 if (ix == x && iy == y) {
                     if (this.objects[ix][iy][2] != null) {
-                        return (Entity)getObject(ix, iy, 2);
+                        return (Entity) getObject(ix, iy, 2);
                     }
                 }
 
@@ -134,6 +122,7 @@ public class World {
         }
         return null;
     }
+
     // полное удаление объектов
     public void clear() {
         for (Room room : rooms) {
@@ -154,21 +143,21 @@ public class World {
         }
     }
 
-    public void fill(int type) {
+    public void fill(JSONObject model) {
         for (int ix = 0; ix < getSizeX(); ix++) {
             for (int iy = 0; iy < getSizeY(); iy++) {
-                addObject(new GameObject(type), ix, iy);
+                addObject(new GameObject(model), ix, iy);
             }
         }
     }
 
     // залить определенную область объектами
-    public int[][][] fill(int x, int y, int width, int height, int type) {
+    public int[][][] fill(int x, int y, int width, int height, JSONObject model) {
         int[][][] matrix = new int[width][height][2];
         for (int ix = 0; ix < width; ix++) {
             for (int iy = 0; iy < height; iy++) {
                 matrix[ix][iy] = new int[]{x + ix, y + iy};
-                addObject(new GameObject(type), x + ix, y + iy);
+                addObject(new GameObject(model), x + ix, y + iy);
             }
         }
         return matrix;
@@ -178,23 +167,24 @@ public class World {
     public boolean isMove(int x, int y) {
         if (x >= 0 && y >= 0 && x < getSizeX() && y < getSizeY()) {
             //return !getObject(x, y).getSolid();
-            return !getNode(x,y).isSolid();
+            return !getNode(x, y).isSolid();
         }
         // движение запрещено
         return false;
     }
 
-//    public void removeObject(GameObject object) {
-//        for (int ix = 0; ix < getSizeX(); ix++) {
-//            for (int iy = 0; iy < getSizeY(); iy++) {
-//                if (this.objects[ix][iy][0] != null) {
-//                    if (this.objects[ix][iy][0].equals(object)) {
-//                        addObject(new GameObject(GameObject.FLOOR), ix, iy);
-//                    }
-//                }
-//            }
-//        }
-//    }
+    public void removeEnvironment(GameObject object) {
+        for (int ix = 0; ix < getSizeX(); ix++) {
+            for (int iy = 0; iy < getSizeY(); iy++) {
+                if (this.objects[ix][iy][1] != null) {
+                    if (this.objects[ix][iy][1].equals(object)) {
+                        this.objects[ix][iy][1] = null;
+                        this.nodes[ix][iy].setSolid(false);
+                    }
+                }
+            }
+        }
+    }
 
     public void removeEntity(Entity entity) {
         for (int ix = 0; ix < getSizeX(); ix++) {
@@ -216,8 +206,8 @@ public class World {
 //        placeWall(x, y + 1, h - 1, Direction.DOWN, GameObject.WALL);
 //    }
 
-    public Room placeRoom(int x, int y, int width, int height) {
-        Room room = new Room(fill(x, y, width, height, GameObject.FLOOR), x, y);
+    public Room placeRoom(int x, int y, int width, int height, JSONObject model) {
+        Room room = new Room(fill(x, y, width, height, model), x, y);
         //writeRectWall(x - 1, y - 1, width + 2, height + 2);
         rooms.add(room);
         return room;
@@ -264,38 +254,69 @@ public class World {
         }
         return objects;
     }
-//    public GameObjects getRoomObjects(int x, int y) {
-//        GameObjects objects = new GameObjects();
-//        arealable area = getArea(x, y);
-//        if (area instanceof Room) {
-//            if (getRooms().contains(area)) {
-//                int[][][] matrix = getRooms().get(getRooms().indexOf(area)).getMatrix();
-//                for (int[][] ints : matrix) {
-//                    for (int iy = 0; iy < matrix[0].length; iy++) {
-//                        int[] cell = ints[iy];
-//                        objects.add(this.objects[cell[0]][cell[1]][0]);
-//                    }
-//                }
-//            }
-//        }
-//        return objects;
-//    }
+
+    public GameObjects getRandomRoomAndRoadObjects() {
+        ArrayList<arealable> areas = new ArrayList<>();
+        areas.addAll(rooms);
+        areas.addAll(roads);
+        arealable area = areas.get(Roguelike.getRandom(areas.size()));
+        GameObjects objects = new GameObjects();
+        if (area instanceof Room room) {
+            int[][][] matrix = room.getMatrix();
+            for (int[][] ints : matrix) {
+                for (int iy = 0; iy < matrix[0].length; iy++) {
+                    int[] cell = ints[iy];
+                    objects.add(this.objects[cell[0]][cell[1]][0]);
+                }
+            }
+        } else if (area instanceof Corridor corridor) {
+            int[][] matrix = corridor.getMatrix();
+            for (int[] ints : matrix) {
+                objects.add(this.objects[ints[0]][ints[1]][0]);
+            }
+        }
+
+        return objects;
+    }
+
+    public GameObjects getObjectsFromRoom(int x, int y, int layer) {
+        GameObjects objects = new GameObjects();
+        if (layer < 0 || layer > 2) {
+            return objects;
+        }
+        arealable area = getArea(x, y);
+        if (area instanceof Room) {
+            if (getRooms().contains(area)) {
+                int[][][] matrix = getRooms().get(getRooms().indexOf(area)).getMatrix();
+                for (int[][] ints : matrix) {
+                    for (int iy = 0; iy < matrix[0].length; iy++) {
+                        int[] cell = ints[iy];
+                        if (this.objects[cell[0]][cell[1]][layer] != null) {
+                            objects.add(this.objects[cell[0]][cell[1]][layer]);
+                        }
+                    }
+                }
+            }
+        }
+        return objects;
+    }
+
     public GameObjects getLastRoomObjects() {
         return getRoomObjects(getRooms().size() - 1);
     }
 
-    public Corridor placeRoad(int x0, int y0, int x1, int y1) {
+    public Corridor placeRoad(int x0, int y0, int x1, int y1, JSONObject model) {
         ArrayList<int[]> corridors = new ArrayList<>();
         if (x1 > x0) {
-            corridors.addAll(placeCorridor(x0, y0, x1 - x0, Direction.RIGHT, GameObject.FLOOR));
+            corridors.addAll(placeCorridor(x0, y0, x1 - x0, Direction.RIGHT, model));
         } else if (x1 < x0) {
-            corridors.addAll(placeCorridor(x0, y0, x0 - x1, Direction.LEFT, GameObject.FLOOR));
+            corridors.addAll(placeCorridor(x0, y0, x0 - x1, Direction.LEFT, model));
         }
         if (y1 > y0) {
-            corridors.addAll(placeCorridor(x0 + (x1 - x0), y0, y1 - y0, Direction.DOWN, GameObject.FLOOR));
+            corridors.addAll(placeCorridor(x0 + (x1 - x0), y0, y1 - y0, Direction.DOWN, model));
         }
         if (y1 < y0) {
-            corridors.addAll(placeCorridor(x0 - (x0 - x1), y0, y0 - y1, Direction.UP, GameObject.FLOOR));
+            corridors.addAll(placeCorridor(x0 - (x0 - x1), y0, y0 - y1, Direction.UP, model));
         }
         int[][] arrayCorridors = new int[corridors.size()][2];
         for (int i = 0; i < corridors.size(); i++) {
@@ -306,33 +327,33 @@ public class World {
         return corridor;
     }
 
-    public ArrayList<int[]> placeCorridor(int x, int y, int s, int direction, int type) {
+    public ArrayList<int[]> placeCorridor(int x, int y, int s, int direction, JSONObject model) {
         ArrayList<int[]> corridor = new ArrayList<>();
         if (direction == Direction.RIGHT) {
             for (int i = 0; i < s; i++) {
                 if (getObject(x + i, y).getType() != GameObject.FLOOR) {
-                    addObject(new GameObject(type), x + i, y);
+                    addObject(new GameObject(model), x + i, y);
                     corridor.add(new int[]{x + i, y});
                 }
             }
         } else if (direction == Direction.LEFT) {
             for (int i = 0; i < s; i++) {
                 if (getObject(x - i, y).getType() != GameObject.FLOOR) {
-                    addObject(new GameObject(type), x - i, y);
+                    addObject(new GameObject(model), x - i, y);
                     corridor.add(new int[]{x - i, y});
                 }
             }
         } else if (direction == Direction.DOWN) {
             for (int i = 0; i < s; i++) {
                 if (getObject(x, y + i).getType() != GameObject.FLOOR) {
-                    addObject(new GameObject(type), x, y + i);
+                    addObject(new GameObject(model), x, y + i);
                     corridor.add(new int[]{x, y + i});
                 }
             }
         } else if (direction == Direction.UP) {
             for (int i = 0; i < s; i++) {
                 if (getObject(x, y - i).getType() != GameObject.FLOOR) {
-                    addObject(new GameObject(type), x, y - i);
+                    addObject(new GameObject(model), x, y - i);
                     corridor.add(new int[]{x, y - i});
                 }
             }

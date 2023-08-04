@@ -1,18 +1,23 @@
 {
-  "speed": 100,
-  "maxViewRadius": 6,
-  "borderMovePlayer" : 2,
+  "speed": 200,
+  "maxViewRadius": 10,
+  "borderMovePlayerX" : 4,
+  "borderMovePlayerY" : 2,
   "hideWalls": false,
-  "frameRate": 60,
+  "frameRate": 50,
+  "gridSize": 49,
+  "costODAction": 4,
+  "costODMove": 2,
   "map": {
-    "width": 50,
-    "height": 50,
+    "width": 30,
+    "height": 30,
     "rooms": 12,
-    "border": 3,
+    "border": 1,
     "minWidth": 5,
     "minHeight": 5,
     "maxWidth": 13,
-    "maxHeight": 13
+    "maxHeight": 13,
+    "maxCountMonsters": 5
   },
   "objects": [
     {

@@ -9,7 +9,13 @@ public class Nodes extends ArrayList<Node> {
         else
             return get(size() - 1);
     }
-
+    public Node[] values() {
+        Node[] array = new Node [this.size()];
+        for (int i = 0; i < this.size(); i++) {
+            array[i] = this.get(i);
+        }
+        return array;
+    }
     public void removeLast() {
         if (!isEmpty())
             remove(size() - 1);

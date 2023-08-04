@@ -1,0 +1,151 @@
+{
+  "entities": [
+    {
+      "id": "humanCivil2",
+      "type": 0,
+      "name": "Путник",
+      "image": "entities/human_civil2.png",
+      "dexterity": 6,
+      "strength": 5,
+      "perception": 5,
+      "stamina": 5,
+      "items": [
+      ]
+    },
+    {
+      "id": "rat1",
+      "type": 10,
+      "level": 0,
+      "name": "Гигантская крыса",
+      "image": "entities/entity_rat.png",
+      "dexterity": 8,
+      "strength": 2,
+      "perception": 4,
+      "stamina": 5,
+      "items": [
+        "meat1"
+      ]
+    },
+    {
+      "id": "rat2",
+      "type": 10,
+      "level": 2,
+      "name": "Гигантская крыса-убийца",
+      "image": "entities/entity_rat.png",
+      "dexterity": 6,
+      "strength": 3,
+      "perception": 4,
+      "stamina": 5,
+      "items": [
+        "meat1"
+      ]
+    },
+    {
+      "id": "dog1",
+      "type": 10,
+      "level": 0,
+      "name": "Голодная собака",
+      "image": "entities/entity_dog.png",
+      "dexterity": 6,
+      "strength": 4,
+      "perception": 7,
+      "stamina": 5,
+      "items": [
+        "meat1"
+      ]
+    },
+    {
+      "id": "dog2",
+      "type": 10,
+      "level": 3,
+      "name": "Бешенная собака-убийцы",
+      "image": "entities/entity_dog.png",
+      "dexterity": 6,
+      "strength": 6,
+      "perception": 8,
+      "stamina": 5,
+      "items": [
+        "meat1"
+      ]
+    },
+    {
+      "id": "bear1",
+      "type": 10,
+      "level": 1,
+      "name": "Медведь",
+      "image": "entities/entity_bear.png",
+      "dexterity": 4,
+      "strength": 8,
+      "perception": 5,
+      "stamina": 5,
+      "items": [
+        "meat1"
+      ]
+    },
+    {
+      "id": "bear2",
+      "type": 10,
+      "level": 5,
+      "name": "Медведь - людоед",
+      "image": "entities/entity_bear.png",
+      "dexterity": 6,
+      "strength": 10,
+      "perception": 5,
+      "stamina": 5,
+      "items": [
+        "meat1"
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "id": "wall1",
+      "type": 1,
+      "name": "Стена",
+      "image": "objects/fence_steel1.png"
+    },
+    {
+      "id": "ladderDown1",
+      "type": 3,
+      "name": "Лестница вниз",
+      "image": "objects/ladder_down.png"
+    },
+    {
+      "id": "ladderUp1",
+      "type": 4,
+      "name": "Лестница наверх",
+      "image": "objects/ladder_up.png"
+    },
+  ],
+  "items": [
+    {
+      "id": "medkit1",
+      "type": 101,
+      "name": "Аптечка первой помощи",
+      "image": "items/medkit.png",
+      "weight": 1
+    },
+    {
+      "id": "meat1",
+      "type": 102,
+      "name": "Кусочек мяса",
+      "image": "items/meat.png",
+      "weight": 2
+    },
+    {
+      "id": "gun_pistol1",
+      "type": 109,
+      "name": "Пистолет",
+      "image": "items/pistol.png",
+      "weight": 3
+    }
+  ],
+  "floors": [
+    {
+      "id": "floor1",
+      "type": 2,
+      "name": "Пол металлический",
+      "image": "terrain/floor10.png"
+    }
+  ]
+}

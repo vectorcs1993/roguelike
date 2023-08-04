@@ -1,24 +1,20 @@
 package com.game.roguelike.world;
 
-import com.game.roguelike.Roguelike;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class Npc extends Entity {
-    // флаг пробуждения пробуждается после первого обнаружения врага
-    public boolean awake;
     // указатель текущей цели для объекта
     private Entity target;
     // флажок прикрепленный к области или нет
-    public boolean attachedToArea;
     private int harassment = 0;
 
-    public Npc(int type) {
-        super(type);
-        awake = false;
+    public Npc(JSONObject model) {
+        super(model);
         target = null;
-        attachedToArea = false;
     }
     public void recoveryHp() {
-        if (awake && getHp() < getHpMax()) {
+        if (getHp() < getHpMax()) {
             setHp(getHp() + 1);
             System.out.println(getName() + "  восстанавливает здоровье");
         }
@@ -30,14 +26,9 @@ public class Npc extends Entity {
 
     public void setTarget(Entity target) {
         if (target != null) {
-            if (!awake) {
-                awake = true;
-            }
             if (getTarget() == null) {
                 this.target = target;
                 harassment = 0;
-
-                System.out.println(getName() + "  начинает преследовать " + target.getName());
             }
         }
     }
@@ -52,5 +43,9 @@ public class Npc extends Entity {
 
     public void destroy() {
         setTarget(null);
+    }
+
+    public boolean isTarget() {
+        return getTarget() != null;
     }
 }

@@ -9,7 +9,6 @@ public class IntegerList extends ArrayList<Integer> {
             this.add(element);
         }
     }
-
     public void append(IntegerList integers) {
         this.addAll(integers);
     }
@@ -23,7 +22,6 @@ public class IntegerList extends ArrayList<Integer> {
         }
         return array;
     }
-
     public void shuffle() {
         Collections.shuffle(this);
     }

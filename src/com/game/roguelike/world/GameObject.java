@@ -1,42 +1,29 @@
 package com.game.roguelike.world;
 
-import com.game.roguelike.Roguelike;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.awt.*;
 
 public class GameObject {
     private final int type;
-    public Image sprite;
+    private final String id;
+    private final String name;
     public final static int PLAYER = 0, WALL=1, FLOOR=2, LADDER_DOWN =3, LADDER_UP=4, MONSTER=10;
 
     public final static int MEDKIT = 101;
-    public GameObject(int type) {
-        this.type = type;
-        // Roguelike.setSprite(room.game.data.getData().getObject(type, id).sprite);
+    public GameObject(JSONObject model) {
+        try {
+
+            this.id = model.getString("id");
+            this.type = model.getInt("type");
+            this.name = model.getString("name");
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
     }
     public int getType() {
         return type;
-    }
-    public char getChar() {
-        return switch (type) {
-            case PLAYER -> '@';
-            case WALL -> '#';
-            case FLOOR -> '.';
-            case MEDKIT -> '+';
-            case LADDER_DOWN -> '>';
-            case LADDER_UP -> '<';
-            case MONSTER -> '!';
-            default -> ' ';
-        };
-    }
-    public String getColorBg() {
-        return switch (type) {
-            case PLAYER -> "blue";
-            case WALL -> "dark_gray";
-            case LADDER_DOWN, LADDER_UP -> "white";
-            case MEDKIT, MONSTER -> "red";
-            default -> "black";
-        };
     }
     public boolean getSolid() {
         return type == WALL || type==MONSTER;
@@ -44,21 +31,11 @@ public class GameObject {
     public boolean getPermanent() {
         return type == WALL;
     }
-    public String getColorFg() {
-        return switch (type) {
-            case WALL, FLOOR -> "light_gray";
-            case LADDER_DOWN, LADDER_UP, MONSTER -> "black";
-            default -> "white";
-        };
-    }
     public String getName() {
-        return switch (type) {
-            case PLAYER -> "игрок";
-            case WALL -> "стена";
-            case FLOOR -> "пол";
-            case LADDER_DOWN -> "лестница вниз";
-            case LADDER_UP -> "лестница наверх";
-            default -> "нет данных";
-        };
+        return name;
+    }
+
+    public String getId() {
+        return id;
     }
 }

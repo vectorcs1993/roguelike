@@ -1,7 +1,5 @@
 package com.game.roguelike.matrix;
 
-import com.game.roguelike.Roguelike;
-
 import java.util.Arrays;
 
 public class Matrix {
@@ -9,15 +7,11 @@ public class Matrix {
     public int[][] matrixLine;
     public int[] matrixRadius;
 
-//    private final int gridX;
-//    private final int gridY;
     public static int NULL = -1;
     private final IntegerList[] radiusList;
     final public int maxRadius; // максимальный радиус
 
     public Matrix(int maxRadius) {
-//        this.gridX = gridX;
-//        this.gridY = gridY;
         this.maxRadius = maxRadius;
         int center = maxRadius + 1;
         int size = center * 2 - 1;
@@ -84,16 +78,30 @@ public class Matrix {
     }
 
     // не статические методы
-    private int[] getArrayDirection() {
-        return radiusList[0].values();
+    private int[] getArrayDirection(Node[][] nodes, int x0, int y0, int x1, int y1) {
+        Nodes nList = new Nodes();
+        IntegerList intList = new IntegerList();
+        int [] neighbor = radiusList[0].values();
+        for (int i = 0; i < neighbor.length; i++) {
+            int tempX = x0 + matrixShearch[neighbor[i]][0];
+            int tempY = y0 + matrixShearch[neighbor[i]][1];
+            nList.add(nodes[tempX][tempY]);
+            intList.add(neighbor[i]);
+        }
+        IntegerList list = new IntegerList();
+        Nodes newList = nList.getSortNear(x1, y1);
+        for (int i = 0; i < newList.size(); i++) {
+            list.add(intList.get(i));
+        }
+        return list.values();
     }
 
     private float getG(Node start, Node end) {
 //        if (start.x == end.x || start.y == end.y)
 //            return 1;
 //        else
-//            return 1.1f;
-    return 1;
+//            return 1.2f;
+        return 1;
     }
 
     // методы класса
@@ -218,7 +226,7 @@ public class Matrix {
         Nodes cells = new Nodes();
         int[] neighbor;
         if (target != null)
-            neighbor = getArrayDirection();
+            neighbor = getArrayDirection(nodes, start.x, start.y, target.x, target.y);
         else
             neighbor = radiusList[0].values();
         for (int i = 0; i < neighbor.length; i++) {
@@ -237,6 +245,7 @@ public class Matrix {
     public Nodes getNeighboring(Node[][] nodes, Node start) {
         return getNeighboring(nodes, start, null, true, false);
     }
+
     public static int getDirection(int x0, int y0, int x1, int y1) {
         if (x0 < x1 && y0 < y1)
             return 0;
@@ -284,6 +293,7 @@ public class Matrix {
             map.add(current);
             current = current.getParent();
         }
+
         return map;
     }
 
@@ -383,6 +393,8 @@ public class Matrix {
         }
         return view;
     }
+
+
 
 //    public int getGridY() {
 //        return gridY;

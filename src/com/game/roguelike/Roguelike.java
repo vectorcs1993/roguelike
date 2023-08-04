@@ -1,21 +1,20 @@
 package com.game.roguelike;
 
+import com.formdev.flatlaf.FlatDarkLaf;
 import com.game.roguelike.matrix.Matrix;
 import com.game.roguelike.matrix.Node;
 import com.game.roguelike.matrix.Nodes;
 import com.game.roguelike.world.*;
-import org.apache.commons.io.IOUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.io.FileInputStream;
-import java.io.IOException;
+import javax.swing.*;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.sql.*;
 import java.util.*;
+import java.util.Timer;
 
 public class Roguelike {
 
@@ -24,44 +23,33 @@ public class Roguelike {
     private final ArrayList<World> worlds;
     private final int mapWidth;
     private final int mapHeight;
-    String[] console = new String[4];
     // private GameObject viewPlayer, subPlayer;
-    final Entity player;
-    private arealable currentArea;
+    final Player player;
+    int currentTick = 0;
+
+    public arealable currentArea;
+    private Entity currentStep;
+    private final ArrayList<Entity> steps;
     private int tick;
-    private final Matrix matrix;
+    public final Matrix matrix;
 
-    private boolean inputDialog;
-    private Runnable[] actionDialog;
+    public Data data;
     JSONObject settings;
-
-    public static final String DB_URL = "jdbc:h2:/data/data.db";
-    public static final String DB_Driver = "org.h2.Driver";
-
-    Connection connection;
-
+    int rate;
     public Roguelike() {
-        inputDialog = false;
-        actionDialog = null;
         tick = 0;
         worlds = new ArrayList<>();
-        player = new Player(GameObject.PLAYER);
         currentArea = null;
-        try {
-            Class.forName(DB_Driver); //Проверяем наличие JDBC драйвера для работы с БД
-            connection = DriverManager.getConnection(DB_URL);//соединениесБД
-            System.out.println("Соединение с СУБД выполнено.");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace(); // обработка ошибки  Class.forName
-            System.out.println("JDBC драйвер для СУБД не найден!");
-        } catch (SQLException e) {
-            e.printStackTrace(); // обработка ошибок  DriverManager.getConnection
-            System.out.println("Ошибка SQL !");
-        }
 
         try {
+
             settings = new JSONObject(readJSONToString("settings.json"));
             System.out.println("Файл настроек загружен");
+            rate = (1000 / (int) getSettings().get("speed"));
+            data = new Data(this);
+            player = new Player(data.getObject("humanCivil2"));
+            player.setItemSlot(5, new Item(data.getObject("gun_pistol1")));
+            steps = new ArrayList<>();
             mapWidth = (int) getSettings(new String[]{"map"}).get("width");
             mapHeight = (int) getSettings(new String[]{"map"}).get("height");
             //объект обработки мира и рисования экрана
@@ -70,110 +58,34 @@ public class Roguelike {
             matrix = new Matrix((int) getSettings().get("maxViewRadius"));
             // генерация комнат
 
-            generateWorld((int) getSettings(new String[]{"map"}).get("rooms"),
-                    (int) getSettings(new String[]{"map"}).get("border"),
-                    (int) getSettings(new String[]{"map"}).get("minWidth"),
-                    (int) getSettings(new String[]{"map"}).get("maxWidth"),
-                    (int) getSettings(new String[]{"map"}).get("minHeight"),
-                    (int) getSettings(new String[]{"map"}).get("maxHeight"));
+            generateNewRoom();
+
             screenMainGame.centerAlign(player);
-            log("Добро пожаловать");
-            // главный цикл отрисовки, запускается каждые 100 мс
-//            new Timer().scheduleAtFixedRate(new TimerTask() {
-//                @Override
-//                public void run() {
-//
-//                }
-//            }, 0, (int) getSettings().get("speed";))
             final long[] time = {0};
             // главный цикл отрисовки, запускается каждые 100 мс
             new Timer().scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    if (++time[0] %(1000 / (int) getSettings().get("speed"))==0) {
-                        movePlayerNextCell();
+                    currentTick++;
+                    if (++time[0] %  rate == 0) {
+                        update();
+                        currentTick = 0;
                     }
-
                     drawScreenGame();
                 }
             }, 0, 1000 / (int) getSettings().get("frameRate"));
-            screenMainGame.canvas.addKeyListener(new KeyListener() {
-                @Override
-                public void keyTyped(KeyEvent keyEvent) {
-                    if (inputDialog) {
-                        if (keyEvent.getKeyChar() == '1') {
-                            if (actionDialog != null) {
-                                if (actionDialog[0] != null) {
-                                    actionDialog[0].run();
-                                    actionDialog = null;
-                                }
-                            }
-                        } else if (keyEvent.getKeyChar() == '2') {
-                            if (actionDialog != null) {
-                                if (actionDialog[1] != null) {
-                                    actionDialog[1].run();
-                                    actionDialog = null;
-                                }
-                            }
-                        }
-                    } else {
-//                        if (keyEvent.getKeyChar() == '1') {
-//                            screenMainGame.canvas.dK += 1;
-//
-//                        }
-//                        if (keyEvent.getKeyChar() == '2') {
-//                            screenMainGame.canvas.dK -= 1;
-//                        }
-//                        if (keyEvent.getKeyChar() == '3') {
-//                            screenMainGame.canvas.dJ += 1;
-//
-//                        }
-//                        if (keyEvent.getKeyChar() == '4') {
-//                            screenMainGame.canvas.dJ -= 1;
-//                        }
-//                        drawScreenGame();
-                    }
-
-                }
-
-                @Override
-                public void keyPressed(KeyEvent keyEvent) {
-
-//                if (!lockInput) {
-//                    if (moveCount > 1) {
-//                        moveCount = 0;
-//                        return;
-//                    }
-//                    if (moveCount == 0) {
-//
-//
-//                        actionPlayer(keyEvent.getKeyCode());
-//
-//                    }
-//                    moveCount++;
-//                }
-                }
-
-                @Override
-                public void keyReleased(KeyEvent keyEvent) {
-                    // moveCount = 0;
-                }
-            });
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try {
-                    connection.close();       // отключение от БД
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }));
         } catch (IOException | URISyntaxException | JSONException e) {
             throw new RuntimeException(e);
         }
+
         updateAllObjects();
+        updateStats();
     }
+
     HashMap<String, Object> getSettings() {
         return getSettings(new String[]{});
     }
+
     HashMap<String, Object> getSettings(String[] entryObject) {
         HashMap<String, Object> setts = new HashMap<>();
         JSONObject obj = settings;
@@ -193,262 +105,38 @@ public class Roguelike {
         return setts;
     }
 
-    // данные
-    private void actionPlayer(int keyCode) {
-        // действия персонажа
-        int newX = getX(player);
-        int newY = getY(player);
-        int viewX = newX;
-        int viewY = newY;
-        final int prevX = newX;
-        final int prevY = newY;
-        boolean move = false;
-        boolean attack = false;
-        boolean allowSpeed = true;
-
-        switch (keyCode) {
-            case 68 -> { // нажата клавиша D
-                if (world.isMove(newX + 1, newY)) {
-                    move = true;
-                }
-                newX += 1;
-                viewX = newX + 1;
-            }
-            case 65 -> { // нажата клавиша A
-                if (world.isMove(newX - 1, newY)) {
-                    move = true;
-                }
-                newX -= 1;
-                viewX = newX - 1;
-            }
-            case 87 -> {  // нажата клавиша W
-                if (world.isMove(newX, newY - 1)) {
-                    move = true;
-                }
-                newY -= 1;
-                viewY = newY - 1;
-            }
-            case 83 -> {  // нажата клавиша S
-                if (world.isMove(newX, newY + 1)) {
-                    move = true;
-                }
-                newY += 1;
-                viewY = newY + 1;
-            }
-            // движение по диагонали
-            case 67 -> {  // нажата клавиша C
-                move = isMove(newX, newY, newX + 1, newY + 1);
-                newX += 1;
-                newY += 1;
-                viewY = newY + 1;
-                viewX = newX + 1;
-            }
-            case 81 -> {  // нажата клавиша Q
-                move = isMove(newX, newY, newX - 1, newY - 1);
-                newX -= 1;
-                newY -= 1;
-                viewY = newY - 1;
-                viewX = newX - 1;
-            }
-            case 90 -> {  // нажата клавиша Z
-                move = isMove(newX, newY, newX - 1, newY + 1);
-                newX -= 1;
-                newY += 1;
-                viewY = newY + 1;
-                viewX = newX - 1;
-            }
-            case 69 -> {  // нажата клавиша E
-                move = isMove(newX, newY, newX + 1, newY - 1);
-                newX += 1;
-                newY -= 1;
-                viewY = newY - 1;
-                viewX = newX + 1;
-            }
-            case 82 -> {  // нажата клавиша R
-                player.nextDirection();
-                drawScreenGame();
-
-            }
-            case 32 -> {
-                if (world.getObject(newX, newY).getType() == GameObject.LADDER_DOWN) {
-                    drawScreenDialog("Спуститься вниз по лестнице?", () -> {
-                        inputDialog = false;
-                        if (worlds.size() == 1) {
-                            generateWorld(15, 3, 3, 8, 3, 8);
-                        } else {
-                            if (worlds.indexOf(world) == worlds.size() - 1) {
-                                generateWorld(15, 3, 3, 8, 3, 8);
-                            } else {
-                                world = worlds.get(worlds.indexOf(world) + 1);
-                            }
-                        }
-                        drawScreenGame();
-                    }, () -> {
-                        inputDialog = false;
-                        drawScreenGame();
-                    });
-                } else if (world.getObject(newX, newY).getType() == GameObject.LADDER_UP) {
-                    drawScreenDialog("Подняться наверх по лестнице?", () -> {
-                        inputDialog = false;
-                        world = worlds.get(worlds.indexOf(world) - 1);
-                        drawScreenGame();
-                    }, () -> {
-                        inputDialog = false;
-                        drawScreenGame();
-                    });
-                }
-            }
-        }
-        if (move) {
-            tick++;
-            player.setDirection(Matrix.getDirection(newX, newY, viewX, viewY));
-            world.moveEntity(player, newX, newY);
-            currentArea = world.getArea(newX, newY);
-        } else {
-            Entity entity = world.getEntity(newX, newY);
-            if (entity != null) {
-                if (!entity.equals(player) && entity.getType() == GameObject.MONSTER) {
-                    attack = true;
-                }
-            }
-            if (attack) {
-                tick++;
-                log(player.attackEntity(entity));
-                if (entity.getHp() <= 0) {
-                    if (entity instanceof Npc) {
-                        ((Npc) entity).destroy();
-                    }
-                    world.removeEntity(entity);
-                    log(entity.getName() + " уничтожен");
-                }
-                drawScreenGame();
-
-            }
-        }
-        if (move || attack) {
-            // обновление хода для монстров
-            // обход всех сущностей на карте (исключительно npc)
-            for (GameObject npc : world.getAllObjects().getObjectsType(GameObject.MONSTER)) {
-                boolean moveNpc = true;
-                Npc npcNotPlayer = (Npc) npc;
-                // npcNotPlayer.setTarget(null);
-                // ищет объекты в своей зоне видимости
-                for (GameObject obj : getSeeAllObjects(npcNotPlayer)) {
-                    // если монстр обнаруживает игрока (т.е. врага)
-                    if (obj.equals(player)) {
-                        npcNotPlayer.setTarget(player);
-                        allowSpeed = false;
-                        break;
-                    }
-                }
-                // если цель монстра определена (т.е. обнаружен враг)
-                if (npcNotPlayer.getTarget() != null) {
-                    boolean attackNpc = false;
-                    // перебирает все соседствующие клетки
-                    for (GameObject neighborEntity : getSeeAllObjects(npcNotPlayer, 1)) {
-                        // если находит сущность и она является целью
-                        if (neighborEntity.equals(npcNotPlayer.getTarget())) {
-                            // то атакует
-                            if (Matrix.allowDiagonalMove(world.getNodes(),
-                                    getX(npcNotPlayer), getY(npcNotPlayer),
-                                    getX(neighborEntity), getY(neighborEntity))) {
-                                log(npcNotPlayer.attackEntity(npcNotPlayer.getTarget()));
-                                moveNpc = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (moveNpc) {
-                        // монстр строит путь до цели
-                        Nodes path = getPath(npcNotPlayer, npcNotPlayer.getTarget());
-                        // если до цели необходимо переместиться
-                        if (!path.isEmpty()) {
-                            // определяет самую ближайшую клетку для перемещения до цели
-                            Node lastNode = path.get(path.size() - 1);
-                            // флажок разрешения для преследования
-                            boolean goLastNode = true;
-                            // проверяет закреплён ли Npc к территории
-                            if (((Npc) npc).attachedToArea) {
-                                arealable currentArea = world.getArea(getX(npc), getY(npc));
-                                arealable newArea = world.getArea(lastNode.x, lastNode.y);
-                                if (currentArea != newArea) {
-                                    goLastNode = false;
-                                    System.out.println(npc.getName() + " больше не преследует игрока");
-                                }
-                            }
-                            if (goLastNode) {
-                                // то монстр начинает движение в сторону цели
-                                log(npc.getName() + " преследует " + player.getName());
-                                world.moveEntity(npcNotPlayer, lastNode.x, lastNode.y);
-                            }
-
-                        }
-                    }
-                } else {
-                    // если цель монстра не определена (т.е. по близости нет врагов)
-                    // то он может может зализывать свои раны
-                    npcNotPlayer.recoveryHp();
-                }
-            }
-            // визуальное обновление окружения
-            adjView(player);
-            setOpenObjectsView();
-            drawScreenGame();
-
-        }
-
-        if (allowSpeed) {
-            Nodes directionNeighbors = new Nodes();
-            for (Node node : matrix.getNeighboring(world.getNodes(),
-                    world.getNode(getX(player), getY(player)))) {
-                if (node.x != prevX || node.y != prevY) {
-                    directionNeighbors.add(node);
-                }
-            }
-            if (directionNeighbors.size() == 1) {
-                Node nextNode = directionNeighbors.last();
-                Timer timer = new Timer();
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        actionPlayer(getKeyCodeXY(getX(player), getY(player), nextNode.x, nextNode.y));
-                    }
-                }, 15);
-            }
-        }
+    private void generateNewRoom() {
+        generateWorld((int) getSettings(new String[]{"map"}).get("rooms"),
+                (int) getSettings(new String[]{"map"}).get("border"),
+                (int) getSettings(new String[]{"map"}).get("minWidth"),
+                (int) getSettings(new String[]{"map"}).get("maxWidth"),
+                (int) getSettings(new String[]{"map"}).get("minHeight"),
+                (int) getSettings(new String[]{"map"}).get("maxHeight"));
     }
 
-    private int getKeyCodeXY(int x0, int y0, int x1, int y1) {
-        if (x0 < x1 && y0 < y1)
-            return 0;
-        else if (x0 < x1 && y0 == y1)
-            return 68;
-        else if (x0 < x1 && y0 > y1)
-            return 2;
-        else if (x0 == x1 && y0 > y1)
-            return 87;
-        else if (x0 > x1 && y0 > y1)
-            return 4;
-        else if (x0 > x1 && y0 == y1)
-            return 65;
-        else if (x0 > x1 && y0 < y1)
-            return 6;
-        else if (x0 == x1 && y0 < y1)
-            return 83;
-        return 32;
+    int getSizeGrid() {
+        return data.size;
     }
 
-    // разрешает или запрещает перемещение по координатам
-    private boolean isMove(int x0, int y0, int x1, int y1) {
-        return world.isMove(x1, y1) && Matrix.allowDiagonalMove(world.getNodes(), x0, y0, x1, y1) &&
-                !matrix.getPathTo(world.getNodes(), world.getNode(x0, y0), world.getNode(x1, y1)).isEmpty();
+    int getSizeIzoGridX() {
+        return (int) (data.size / 1.45);
+    }
+
+    int getSizeIzoGridY() {
+        return (int) (data.size / 2.9);
+    }
+
+    Entity getCurrentStep() {
+        return currentStep;
     }
 
     private void generateWorld(int rooms, int border, int minW, int maxW, int minH, int maxH) {
         worlds.add(new World(mapWidth, mapHeight));
+        int level = worlds.indexOf(world) + 1;
         world = worlds.get(worlds.size() - 1);
         world.clear();
-        world.fill(GameObject.WALL);
+        steps.clear();
+        world.fill(data.getObject("wall1"));
         // rooms - количество комнат
         // border - рамка размещаемых комнат (минимальное расстояние между ними)
         // максимальное количество ошибок
@@ -468,10 +156,14 @@ public class Roguelike {
             if (world.isClearOfObject(placeX, placeY, placeW, placeH, GameObject.WALL)) {
                 // запоминаем координаты середины старой комнаты
                 oldRoom = newRoom;
-                newRoom = world.placeRoom(rx, ry, widthRoom, heightRoom);
+                newRoom = world.placeRoom(rx, ry, widthRoom, heightRoom, data.getObject("floor1"));
                 newRoom.setName("Комната " + world.getRooms().size());
                 if (oldRoom != null) {
-                    Corridor corridor = world.placeRoad(oldRoom.getAbsoluteCenterX(), oldRoom.getAbsoluteCenterY(), newRoom.getAbsoluteCenterX(), newRoom.getAbsoluteCenterY());
+                    Corridor corridor = world.placeRoad(
+                            oldRoom.getAbsoluteCenterX(),
+                            oldRoom.getAbsoluteCenterY(),
+                            newRoom.getAbsoluteCenterX(),
+                            newRoom.getAbsoluteCenterY(), data.getObject("floor1"));
                     corridor.setName("Корридор " + world.getCorridors().size());
                 }
                 // уменьшаем счетчик комнаты
@@ -482,138 +174,354 @@ public class Roguelike {
 
         }
 
-
         // установка лестницы
         int[] placeLadderDown = placeFreeNeighbor(world.getLastRoomObjects());
-        world.addEnvironment(new GameObject(GameObject.LADDER_DOWN), placeLadderDown[0], placeLadderDown[1]);
+        world.addEnvironment(new GameObject(data.getObject("ladderDown1")), placeLadderDown[0], placeLadderDown[1]);
 
         // перемещение игрока
         currentArea = world.getRooms().get(0);
         int[] placePlayer = placeFreeNeighbor(world.getRoomObjects(0));
         world.addEntity(player, placePlayer[0], placePlayer[1]);
-        adjView(player);
-        // если уровень ниже первого
-        if (worlds.indexOf(world) > 0) {
-            // то добавляется лестница наверх
-            world.addEnvironment(new GameObject(GameObject.LADDER_UP), placePlayer[0], placePlayer[1]);
-        }
-        for (int i = 0; i < 1; i++) {
-            int[] placeMonster = placeFreeNeighbor(world.getRoomObjects(getRandom(world.getRooms().size())));
-            world.addEntity(new Npc(GameObject.MONSTER), placeMonster[0], placeMonster[1]);
+
+        // если уровень выше первого
+        if (level > 0) {
+            // то добавляется лестница вниз
+            world.addEnvironment(new GameObject(data.getObject("ladderUp1")), placePlayer[0], placePlayer[1]);
         }
 
-        setOpenObjectsView();
+        try {
+            // формирование списка допустимых монстров на уровне
+            ArrayList<JSONObject> tempMonsters = new ArrayList<>();
+            for (JSONObject monster : data.getJSONObjectsIsType(GameObject.MONSTER)) {
+                if (level >= monster.getInt("level")) {
+                    tempMonsters.add(monster);
+                }
+            }
+            // если список доступных к размещению монстров не пустой
+            if (!tempMonsters.isEmpty()) {
+                // максимальное число монстров на уровне
+                int maxCountMonsters = (int) getSettings(new String[]{"map"}).get("maxCountMonsters");
+                // случайное количество монстров, но минимум 1
+                int randomCountMonsters = getRandom(1, maxCountMonsters);
+                for (int i = 0; i < randomCountMonsters; i++) {
+                    JSONObject monster = tempMonsters.get(getRandom(tempMonsters.size()));
+                    boolean place = false;
+                    int errorsPlace = 0;
+
+                    while (!place) {
+                        int[] placeMonster = placeFreeNeighbor(world.getRoomObjects(getRandom(world.getRooms().size())));
+                        // если в комнате никого нет, то
+                        if (world.getObjectsFromRoom(placeMonster[0], placeMonster[1], 2).isEmpty()) {
+                            JSONObject model = data.getObject(monster.getString("id"));
+                            Npc npc = new Npc(model);
+                            world.addEntity(npc, placeMonster[0], placeMonster[1]);
+                            JSONArray items = model.getJSONArray("items");
+                            for (int ii = 0; ii < items.length(); ii++) {
+                                npc.getItems().add(new Item(data.getObject(items.getString(ii))));
+                            }
+                            place = true;
+                        } else {
+                            errorsPlace++;
+                            if (errorsPlace >= world.getRooms().size()) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+        addItem("medkit1");
+        addItem("gun_pistol1");
+        toNewLevel();
+        updatePlayerView();
     }
 
-    //    private void drawScreenGame() {
-//        if (inputDialog)
-//            return;
-//        viewPlayer = world.getObjectWithEntity(getX(player) + Matrix.getDirectionXY(player.getDirection())[0],
-//                getY(player) + Matrix.getDirectionXY(player.getDirection())[1]);
-//        subPlayer = world.getObject(getX(player), getY(player));
-//        screenMainGame.clear();
-//        // рисует мир (world)
-//        drawObjectsInHashMap(world.getIteratorObjects(0));
-//        drawObjectsInHashMap(world.getIteratorObjects(1));
-//
-//        // прорисовка интерфейса
-//        String text = "Уровень: " + (worlds.indexOf(world) + 1) +
-//                "\nЛокация: " + currentArea.getName() + " x: " + getX(player) + " y: " + getY(player) +
-//                "\nХод: " + tick +
-//                "\nНаправление: " + player.getDirection() +
-//                "\nВзляд: " + getViewInfo() +
-//                "\nОбласть: " + getSubInfo();
-//        // screenMainGame.text.setText(text);
-//
-//        screenMainGame.writeText(mapWidth + 1, 0, "уровень: " + (worlds.indexOf(world) + 1))
-//                //.writeTextы(mapWidth + 1, 1, "Локация: " + currentArea.getName() + " x: " + getX(player) + " y: " + getY(player))
-//                .writeText(mapWidth + 1, 1, "ЗД: " + player.getHp() + "/" + player.getHpMax())
-//                .writeText(mapWidth + 1, 2, "поверхность: " + getSubInfo())
-//                .writeText(0, mapHeight + 1, console[0])
-//                .writeText(0, mapHeight + 2, console[1])
-//                .writeText(0, mapHeight + 3, console[2])
-//                .writeText(0, mapHeight + 4, console[3]);
-//
+    public void addItem(String item) {
+        int[] place = placeFreeNeighbor(world.getRandomRoomAndRoadObjects(), false);
+        world.addEnvironment(new Item(data.getObject(item)), place[0], place[1]);
+    }
 
-//    }
+    public void endStep() {
+        player.setOd(0);
+        stopAndEndStep();
+    }
+
+    private void toNewLevel() {
+        // формируется список существ в отдельной переменной
+        steps.clear();
+        currentStep = player;
+        steps.add(player);
+        for (GameObject object : world.getAllObjects().getObjectsType(GameObject.MONSTER)) {
+            steps.add((Entity) object);
+        }
+        log(player.getName() + " попадает на уровень: " + getLevel(), "blue_white");
+    }
+
+    // вызывается при нажатии по игровому канвасу
     public void clickCanvas(int x, int y) {
-        if (screenMainGame.canvas.isPlayerVisible(x, y) && world.isMove(x, y)) {
-            if (world.isMove(x, y)) {
-                int px = getX(player);
-                int py = getY(player);
-                player.path = matrix.getPathTo(world.getNodes(), world.getNode(px, py), world.getNode(x, y));
-            }
-        }
-    }
+        if (getCurrentStep().equals(player)) {
+            GameObject clickEntity = world.getObject(x, y, 2);
+            boolean playerDetected = isPlayerDetected();
+            if (clickEntity != null) {
+                if (clickEntity instanceof Entity entity) {
+                    if (clickEntity.getType() == GameObject.MONSTER) {
+                        boolean attack = true;
+                        // дистанция до монстра
+                        int distance = player.getView()[getX(entity)][getY(entity)];
+                        // если в основной руке нет оружия
+                        if (distance > 0 && !player.isItemSlot(5)) {
+                            attack = false;
+                            log("Цель слишком далеко", "green_white");
+                        }
+                        if (attack) {
+                            if (!playerDetected) {
+                                player.setOd((int) getSettings().get("costODAction"));
+                            }
+                            if (isOD(player, (int) getSettings().get("costODAction"), true, true)) {
+                                tick++;
+                                if (tick >= player.getStamina() && tick % player.getStamina() == 0) {
+                                    // отнимается энергия
+                                    player.setEnergy(player.getEnergy() - (int) getSettings().get("costODAction"));
+                                }
 
-    private void movePlayerNextCell() {
-        if (!player.path.isEmpty()) {
-            Node next = player.path.last();
-            if (world.isMove(next.x, next.y)) {
-                world.moveEntity(player, next.x, next.y);
-                currentArea = world.getArea(next.x, next.y);
-                // визуальное обновление окружения
-                adjView(player);
-                setOpenObjectsView();
-                player.path.removeLast();
-                tick++;
-                updateAllMonsters();
-                updateAllObjects();
-//                if (!player.path.isEmpty()) {
-//
-//                   taskMove = new TimerTask() {
-//                        @Override
-//                        public void run() {
-//                            System.out.println(taskMove.scheduledExecutionTime());
-//                            tick++;
-//                            updateAllMonsters();
-//                            movePlayerNextCell();
-//                        }
-//                    };
-//                    timerMove.schedule(taskMove, 100);
-//                } else {
-//                    tick++;
-//                    updateAllMonsters();
-//                }
-
+                                // проверка вероятности атаки
+                                if (getFactAttack(player, entity)) {
+                                    // атака монстра
+                                    log(player.attackEntity(entity, getLevelAttack(player.getItemSlot(5))), "green_black");
+                                    if (entity instanceof Npc monster) {
+                                        if (monster.getHp() <= 0) {
+                                            Item item = monster.getItems().get(getRandom(monster.getItems().size()));
+                                            int xm = getX(monster);
+                                            int ym = getY(monster);
+                                            monster.destroy();
+                                            world.removeEntity(monster);
+                                            steps.remove(monster);
+                                            log(monster.getName() + " уничтожен", "green_black");
+                                            if (world.getEnvironment(xm, ym) == null) {
+                                                world.addEnvironment(item,
+                                                        xm, ym);
+                                            } else {
+                                                log(item.getName() + " добавлен в инвентарь "+player.getName(), "green_black");
+                                                player.getItems().add(item);
+                                            }
+                                        } else {
+                                            // если монстр выжил, то атакующий становится его целью
+                                            monster.setTarget(player);
+                                        }
+                                    }
+                                } else {
+                                    log("Промах", "green_white");
+                                }
+                            }
+                            if (player.getOd() == 0) {
+                                stopAndEndStep();
+                            }
+                        }
+                    }
+                }
             } else {
-                player.path.clear();
+                //if (screenMainGame.canvas.isPlayerVisible(x, y)) {
+                if (screenMainGame.visible[x][y]) {
+                    if (world.isMove(x, y)) {
+                        if (!playerDetected && player.getOd() < (int) getSettings().get("costODMove")) {
+                            player.setOd((int) getSettings().get("costODMove"));
+                        }
+                        if (isOD(player, (int) getSettings().get("costODMove"), false, true)) {
+                            if (player.getItemsWeight() < player.getMaxCp()) {
+                                int px = getX(player);
+                                int py = getY(player);
+//                                player.path = matrix.getPathTo(world.getNodes(), world.getNode(px, py), world.getNode(x, y));
+//                                if (player.path.isEmpty()) {
+//                                    log("Путь не найден");
+//                                }
+                                System.out.println();
+                                log("as");
+                            } else {
+                                log("Слишком большой груз на плечах!");
+                            }
+                        }
+                    } else {
+                        log("Путь не найден");
+                    }
+                } else {
+                    log("Путь не найден");
+                }
+            }
+            updatePlayerView();
+            updateAllObjects();
+            updateStats();
+        }
+    }
+
+    private void update() {
+        if (currentStep.equals(player)) {
+            updateStepPlayer();
+        } else {
+            updateStepMonster();
+        }
+    }
+
+    boolean isPlayerDetected() {
+        boolean playerDetected = false;
+        for (GameObject npc : world.getAllObjects().getObjectsType(GameObject.MONSTER)) {
+            Npc npcNotPlayer = (Npc) npc;
+            if (npcNotPlayer.isTarget()) {
+                playerDetected = npcNotPlayer.getTarget().equals(player);
+            }
+            for (GameObject obj : getSeeAllObjects(npcNotPlayer)) {
+                if (obj.equals(player)) {
+                    playerDetected = true;
+                    break;
+                }
+            }
+            if (playerDetected) {
+                break;
+            }
+        }
+
+
+        return playerDetected;
+    }
+
+    private void updateStepPlayer() {
+        if (currentStep.equals(player)) {
+            if (!player.path.isEmpty()) {
+                Node next = player.path.last();
+                if (world.isMove(next.x, next.y)) {
+                    boolean playerDetected = isPlayerDetected();
+                    if (!playerDetected && player.getOd() < (int) getSettings().get("costODMove")) {
+                        player.setOd((int) getSettings().get("costODMove"));
+                    }
+                    if (isOD(player, (int) getSettings().get("costODMove"), true, true)) {
+                        tick++;
+                        world.moveEntity(player, next.x, next.y);
+                        if (tick >= player.getStamina() && tick % player.getStamina() == 0) {
+                            // отнимается энергия
+                            player.setEnergy(player.getEnergy() - (int) getSettings().get("costODMove"));
+                        }
+                        currentArea = world.getArea(next.x, next.y);
+                        player.path.removeLast();
+
+                        if (player.path.isEmpty()) {
+                            GameObject objectEhdPoint = world.getEnvironment(next.x, next.y);
+                            if (objectEhdPoint != null) {
+                                if (objectEhdPoint.getType() == GameObject.LADDER_DOWN
+                                        || objectEhdPoint.getType() == GameObject.LADDER_UP) {
+                                    if (objectEhdPoint.getType() == GameObject.LADDER_DOWN) {
+                                        if (worlds.size() == 1) {
+                                            generateNewRoom();
+                                        } else {
+                                            if (worlds.indexOf(world) == worlds.size() - 1) {
+                                                generateNewRoom();
+                                            } else {
+                                                world = worlds.get(worlds.indexOf(world) + 1);
+                                                toNewLevel();
+                                            }
+                                        }
+                                    } else if (objectEhdPoint.getType() == GameObject.LADDER_UP) {
+                                        world = worlds.get(worlds.indexOf(world) - 1);
+                                        toNewLevel();
+                                    }
+                                    player.setEnergy(player.getEnergy() - 4);
+                                    screenMainGame.centerAlign(player);
+                                } else if (objectEhdPoint instanceof Item item) {
+                                    playerAddItem(item);
+                                    world.removeEnvironment(item);
+                                    log(player.getName() + " подобрал " + item.getName(), "blue_white");
+//                                    player.setEnergy(player.getEnergy() - 4);
+//                                    int prevHp = player.getHp();
+//                                    player.setHp(player.getHp() + 50);
+//                                    world.removeEnvironment(objectEhdPoint);
+//                                    log(player.getName() + " излечился на " + Math.abs(prevHp - 50) +
+//                                            " единиц здоровья", "green_black");
+                                }
+                            }
+                        }
+
+                    } else {
+                        if (!playerDetected) {
+                            player.setOd(0);
+                        } else {
+                            player.path.clear();
+                        }
+                    }
+                    if (player.getOd() == 0) {
+                        if (!playerDetected) {
+                            player.setOd(player.getMaxOd());
+                        } else {
+                            stopAndEndStep();
+                        }
+                    }
+                    updatePlayerView();
+                    updateAllObjects();
+                    updateStats();
+                } else {
+                    player.path.clear();
+                }
             }
         }
     }
 
-    private void updateAllMonsters() {
-        // обновление хода для монстров
-        // обход всех сущностей на карте (исключительно npc)
-        for (GameObject npc : world.getAllObjects().getObjectsType(GameObject.MONSTER)) {
+    private void stopAndEndStep() {
+        player.path.clear();
+        nextStepEntity();
+    }
+
+    public int getLevelAttack(Item item) {
+        int damageMin = 5;
+        int damageMax = 10;
+        int guns = 100;
+
+        // расчёт урона, наносимого определённым средством
+        double k = (double) guns / 100;
+        return damageMin + getRandom((int) (Math.abs(damageMax - damageMin) * k) + 1);
+    }
+
+    public double getPercentAttack(Entity entity, Entity target) {
+        int accuracy = 50;
+        int radius = 3;
+        int distance = entity.getView()[getX(target)][getY(target)];
+        int de = (int) Roguelike.map(accuracy, 0, 100, 10, 0);
+        return limit(accuracy -
+                        ((distance - radius) * de),
+                (distance == 0) ? 95 : 0, 95);
+    }
+
+    public boolean getFactAttack(Entity entity, Entity target) {
+        return getRandom(100) + 1 <= getPercentAttack(entity, target);
+    }
+
+    private void updateStepMonster() {
+        if (!currentStep.equals(player)) {
+            Npc npcNotPlayer = (Npc) getCurrentStep();
+            // флажок разрешает npc перемещаться если до врага необходимо идти
             boolean moveNpc = true;
-            Npc npcNotPlayer = (Npc) npc;
-            // npcNotPlayer.setTarget(null);
+            boolean attackNpc = false;
             // ищет объекты в своей зоне видимости
             for (GameObject obj : getSeeAllObjects(npcNotPlayer)) {
                 // если монстр обнаруживает игрока (т.е. врага)
                 if (obj.equals(player)) {
                     npcNotPlayer.setTarget(player);
-                    break;
-                }
-            }
-            // если цель монстра определена (т.е. обнаружен враг)
-            if (npcNotPlayer.getTarget() != null) {
-                boolean attackNpc = false;
-                // перебирает все соседствующие клетки
-                for (GameObject neighborEntity : getSeeAllObjects(npcNotPlayer, 1)) {
-                    // если находит сущность и она является целью
-                    if (neighborEntity.equals(npcNotPlayer.getTarget())) {
-                        // то атакует
-                        if (Matrix.allowDiagonalMove(world.getNodes(),
+                    log(npcNotPlayer.getName() + " обнаружила " + player.getName());
+                    // перебирает все соседствующие клетки,
+                    for (GameObject neighborEntity : getSeeAllObjects(npcNotPlayer, 1)) {
+                        //  есть ли враг в непосредственной близости, его можно атаковать
+                        if (neighborEntity.equals(npcNotPlayer.getTarget()) && Matrix.allowDiagonalMove(world.getNodes(),
                                 getX(npcNotPlayer), getY(npcNotPlayer),
                                 getX(neighborEntity), getY(neighborEntity))) {
-                            log(npcNotPlayer.attackEntity(npcNotPlayer.getTarget()));
+                            attackNpc = true;
                             moveNpc = false;
                             break;
                         }
                     }
+                    // на этом перебор объектов заканчивается, так как цель обнаружена
+                    break;
                 }
+            }
+            if (npcNotPlayer.isTarget()) {
                 if (moveNpc) {
                     // монстр строит путь до цели
                     Nodes path = getPath(npcNotPlayer, npcNotPlayer.getTarget());
@@ -621,86 +529,199 @@ public class Roguelike {
                     if (!path.isEmpty()) {
                         // определяет самую ближайшую клетку для перемещения до цели
                         Node lastNode = path.get(path.size() - 1);
-                        // флажок разрешения для преследования
-                        boolean goLastNode = true;
-                        // проверяет закреплён ли Npc к территории
-                        if (((Npc) npc).attachedToArea) {
-                            arealable currentArea = world.getArea(getX(npc), getY(npc));
-                            arealable newArea = world.getArea(lastNode.x, lastNode.y);
-                            if (currentArea != newArea) {
-                                goLastNode = false;
-                                System.out.println(npc.getName() + " больше не преследует игрока");
-                            }
-                        }
-                        if (goLastNode) {
-                            // то монстр начинает движение в сторону цели
-                            log(npc.getName() + " преследует " + player.getName());
+                        // то монстр начинает движение в сторону цели
+                        if (isOD(npcNotPlayer, (int) getSettings().get("costODMove"), true, true)) {
+                            log(npcNotPlayer.getName() + " преследует " + player.getName());
                             world.moveEntity(npcNotPlayer, lastNode.x, lastNode.y);
+                        } else {
+                            npcNotPlayer.setOd(0);
                         }
-
+                    } else {
+                        // если путь не найден то пропускаем ход
+                        npcNotPlayer.setOd(0);
+                    }
+                }
+                if (attackNpc) {
+                    // то атакует если хватает очков дейвствий
+                    if (isOD(npcNotPlayer, (int) getSettings().get("costODAction"), true, true)) {
+                        log(npcNotPlayer.attackEntity(npcNotPlayer.getTarget()), "red_black");
+                    } else {
+                        // если ОД не хватает то пропускает ход
+                        npcNotPlayer.setOd(0);
                     }
                 }
             } else {
-                // если цель монстра не определена (т.е. по близости нет врагов)
-                // то он может может зализывать свои раны
-                npcNotPlayer.recoveryHp();
+                npcNotPlayer.setOd(0);
             }
+            updatePlayerView();
+            updateAllObjects();
+            updateStats();
+            if (npcNotPlayer.getOd() == 0) {
+                nextStepEntity();
+            }
+
+            //if (npcNotPlayer.getTarget() == null) {
+//                int[] randomTarget = placeFreeNeighbor(world.getObjectsFromRoom(getX(npcNotPlayer), getY(npcNotPlayer), 0), false);
+//                Nodes path = matrix.getPathTo(world.getNodes(), world.getNode(getX(npcNotPlayer), getY(npcNotPlayer)),
+//                        world.getNode(randomTarget[0], randomTarget[1]));
+//                System.out.println(path.size());
+//                if (!path.isEmpty()) {
+//                    if (isOD(npcNotPlayer, (int) getSettings().get("costODMove"), true, false)) {
+//                        Node lastNode = path.get(path.size() - 1);
+//                        world.moveEntity(npcNotPlayer, lastNode.x, lastNode.y);
+//                        updatePlayerView();
+//                    } else {
+//                        npcNotPlayer.setOd(0);
+//                    }
+//                } else {
+//                    npcNotPlayer.setOd(0);
+//                }
+
+//            // если цель монстра не определена (т.е. по близости нет врагов)
+//            if (npcNotPlayer.getHp() < npcNotPlayer.getHpMax()) {
+//                // то он может может зализывать свои раны
+//                if (npcNotPlayer.getOd() >= 1) {
+//                    npcNotPlayer.setOd(npcNotPlayer.getOd() - 1);
+//                    npcNotPlayer.recoveryHp();
+//                    log(npcNotPlayer.getName() + " излечивается от ранений");
+//                } else {
+//                    npcNotPlayer.setOd(0);
+//                }
+//            } else {
+//                npcNotPlayer.setOd(0);
+//            }
+            //}
         }
     }
+
+    private void playerAddItem(Item item) {
+        player.getItems().add(item);
+        syncInventory();
+    }
+
+    void nextStepEntity() {
+        int currentIndexStep = steps.indexOf(currentStep);
+        currentIndexStep++;
+        if (currentIndexStep >= steps.size()) {
+            currentIndexStep = 0;
+        }
+        currentStep = steps.get(currentIndexStep);
+        currentStep.setOd(currentStep.getMaxOd());
+        updateStats();
+    }
+
+    void updatePlayerView() {
+        adjView(player);
+        setOpenObjectsView();
+    }
+
+
+    private boolean isOD(Entity entity, int costAction, boolean action, boolean log) {
+        if (entity.getOd() >= costAction) {
+            if (action) {
+                entity.setOd(entity.getOd() - costAction);
+            }
+            return true;
+        } else {
+            if (log) {
+                log("Не хватает очков действия");
+            }
+        }
+        return false;
+    }
+
+    private void updateStats() {
+        screenMainGame.updateTextStatPrimary(
+                new String[]{
+                        "ЗДОРОВЬЕ",
+                        "ОЧКИ ДЕЙСТВИЙ",
+                        "ГРУЗ",
+                        "ОБЗОР"
+                }, new int[]{
+                        player.getHp(),
+                        player.getOd(),
+                        player.getItemsWeight(),
+                        player.getRadius(),
+                }, new int[]{
+                        player.getHpMax(),
+                        player.getMaxOd(),
+                        player.getMaxCp(),
+                        (int) getSettings().get("maxViewRadius")
+                }
+                , new int[]{
+                        Interface.CanvasStats.FORWARD,
+                        Interface.CanvasStats.FORWARD,
+                        Interface.CanvasStats.BACKWARD,
+                        Interface.CanvasStats.FORWARD
+                });
+        screenMainGame.updateTextStatsSecondary(
+                new String[]{
+                        "ЭНЕРГИЯ",
+                        "ГОЛОД",
+                        "ЖАЖДА",
+                        "РАДИАЦИЯ"
+                }, new int[]{
+                        player.getEnergy(),
+                        player.getHunger(),
+                        player.getThirst(),
+                        player.getRadiation(),
+                }, new int[]{
+                        100,
+                        100,
+                        100,
+                        100
+                }
+                , new int[]{
+                        Interface.CanvasStats.FORWARD,
+                        Interface.CanvasStats.BACKWARD,
+                        Interface.CanvasStats.BACKWARD,
+                        Interface.CanvasStats.BACKWARD
+                });
+        screenMainGame.updateTextChar(player.getName() +
+                "\nСИЛА: " + player.getStrength() +
+                "\nЛОВКОСТЬ: " + player.getDexterity() +
+                "\nВЫНОСЛИВОСТЬ: " + player.getStamina() +
+                "\nВОСПРИЯТИЕ: " + player.getPerception());
+    }
+    // алгоритм обновления всех entity на уровне
+
     private void updateAllObjects() {
         drawObjectsInHashMap(world.getIteratorObjects(0));
         drawObjectsInHashMap(world.getIteratorObjects(1));
         drawObjectsInHashMap(world.getIteratorObjects(2));
     }
+
     private void drawScreenGame() {
-        screenMainGame.canvas.constrainMoveCanvas();
-        screenMainGame.canvas.repaint();
+        screenMainGame.draw();
     }
 
     private void log(String message) {
-        for (int i = console.length - 1; i > 0; i--) {
-            if (console[i - 1] != null) {
-                console[i] = console[i - 1];
-            }
-
-        }
-        console[0] = "[ход " + tick + "] " + message;
+        log(message, "dark_gray_white");
     }
 
-    private void drawScreenDialog(String question, Runnable actionConfirm, Runnable actionCancel) {
-        inputDialog = true;
-        actionDialog = new Runnable[]{actionConfirm, actionCancel};
-//        screenMainGame.clear();
-//        screenMainGame.writeText(5, 5, question);
-//        screenMainGame.writeText(6, 6, "1 - Да");
-//        screenMainGame.writeText(6, 7, "2 - Нет");
-//        screenMainGame.redrawDialog();
-        // перерисовать экран
-        screenMainGame.repaint();
+    private void log(String message, String style) {
+        screenMainGame.addLog(message, tick, style);
     }
-
-//    private String getViewInfo() {
-//        return (viewPlayer != null) ? viewPlayer.getName() : "ничего";
-//    }
-//
-//    private String getSubInfo() {
-//        return (subPlayer != null) ? subPlayer.getName() : "ничего";
-//    }
 
     //устанавливает объект в свободную от других объектов область
-    private int[] placeFreeNeighbor(GameObjects objects) {
+    private int[] placeFreeNeighbor(GameObjects objects, boolean border) {
         int[] placeXY = new int[2];
         boolean place = false;
+        GameObjects floors = objects.getObjectsType(GameObject.FLOOR);
+
         while (!place) {
-            GameObject placeObject = objects.getObjectsType(GameObject.FLOOR).getRandomObject();
+            GameObject placeObject = floors.getRandomObject();
             placeXY[0] = getX(placeObject);
             placeXY[1] = getY(placeObject);
-            if (matrix.getNeighboring(world.getNodes(),
-                    world.getNode(placeXY[0], placeXY[1])).size() == 8) {
+            if (!border || matrix.getNeighboring(world.getNodes(), world.getNode(placeXY[0], placeXY[1])).size() == 8) {
                 place = true;
             }
         }
         return placeXY;
+    }
+
+    private int[] placeFreeNeighbor(GameObjects objects) {
+        return placeFreeNeighbor(objects, true);
     }
 
     // возвращает все видимые соседние объекты относительно entity
@@ -739,6 +760,11 @@ public class Roguelike {
     }
 
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(new FlatDarkLaf());
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize LaF");
+        }
         new Roguelike();
     }
 
@@ -827,6 +853,10 @@ public class Roguelike {
         return world.getPositionY(object);
     }
 
+    public int getLevel() {
+        return worlds.indexOf(world) + 1;
+    }
+
     // возвращает ближайший к entity узел target
     public Node getNearNeighboring(Entity entity, Entity target) {
         return matrix.getNeighboring(world.getNodes(), world.getNode(getX(entity), getY(entity))).getNearest(getX(target), getY(target));
@@ -838,9 +868,40 @@ public class Roguelike {
 
     // чтение JSON файла из папки "data"
     public String readJSONToString(String filename) throws IOException, URISyntaxException {
-        final String dir = System.getProperty("user.dir");
-        FileInputStream in = new FileInputStream(dir + "\\data\\" + filename);
-        return IOUtils.toString(in, StandardCharsets.UTF_8.name());
+        try (InputStream in = getClass().getResourceAsStream("/" + filename)) {
+            assert in != null;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                StringBuilder content = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line);
+                    content.append(System.lineSeparator());
+                }
+                return content.toString();
+            }
+        }
+    }
+
+    // событие по выбору определенной вкладки в панели управления
+    public void selectTab(int idx) {
+        if (idx == 1) {
+            syncInventory();
+        }
+    }
+
+    private void syncInventory() {
+        screenMainGame.getListInventory().clear();
+        for (Item item : player.getItems()) {
+            screenMainGame.getListInventory().addElement(item);
+        }
+        screenMainGame.getInventoryTextLabel().setText("Общий вес: "+player.getItemsWeight()+"/"+player.getMaxCp());
+        screenMainGame.getInventoryButtonUse().setVisible(false);
+        screenMainGame.getInventoryInfoOfItem().setText("");
+    }
+
+    public void selectItem(Item item) {
+        screenMainGame.getInventoryButtonUse().setVisible(true);
+        screenMainGame.getInventoryInfoOfItem().setText("Вес: "+item.getWeight());
     }
 }
 
